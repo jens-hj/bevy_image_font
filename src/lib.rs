@@ -61,9 +61,9 @@ pub struct ImageFont {
 }
 
 impl ImageFont {
-    fn from_char_map(texture: Handle<Image>, size: UVec2, char_map: &HashMap<char, Rect>) -> Self {
+    fn from_char_map(texture: Handle<Image>, size: UVec2, char_map: &HashMap<char, URect>) -> Self {
         let mut index_map = HashMap::new();
-        let mut layout = TextureAtlasLayout::new_empty(size.as_vec2());
+        let mut layout = TextureAtlasLayout::new_empty(size);
         for (i, (&c, &rect)) in char_map.iter().enumerate() {
             index_map.insert(c, i);
             layout.add_texture(rect);
@@ -214,15 +214,13 @@ pub fn render_text(
     let height = text
         .chars()
         .map(|c| layout.textures[image_font.index_map[&c]].height())
-        .reduce(f32::max)
-        .unwrap()
-        .ceil() as u32;
+        .reduce(u32::max)
+        .unwrap();
     let width = text
         .chars()
         .map(|c| layout.textures[image_font.index_map[&c]].width())
         .reduce(|a, b| a + b)
-        .unwrap()
-        .ceil() as u32;
+        .unwrap();
 
     let mut output_image = image::RgbaImage::new(width, height);
     let font_texture: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(
@@ -235,8 +233,8 @@ pub fn render_text(
     let mut x = 0;
     for c in text.chars() {
         let rect = layout.textures[image_font.index_map[&c]];
-        let width = rect.width().ceil() as u32;
-        let height = rect.height().ceil() as u32;
+        let width = rect.width();
+        let height = rect.height();
         output_image.copy_from(
             &*font_texture.view(rect.min.x as u32, rect.min.y as u32, width, height),
             x,

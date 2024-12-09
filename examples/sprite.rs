@@ -9,7 +9,7 @@ fn main() {
         .add_plugins((DefaultPlugins, ImageFontPlugin))
         .init_collection::<DemoAssets>()
         .add_systems(Startup, spawn_text)
-        .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
+        .insert_resource(ClearColor(Color::srgb(0.2, 0.2, 0.2)))
         .run();
 }
 
