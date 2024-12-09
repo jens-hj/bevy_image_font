@@ -9,10 +9,10 @@ use bevy::{
     render::{
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
-        texture::ImageSampler,
     },
     utils::{HashMap, HashSet},
 };
+use bevy_image::{Image, ImageSampler};
 use derive_setters::Setters;
 use image::{
     imageops::{self, FilterType},
@@ -96,26 +96,23 @@ pub struct ImageFontText {
 }
 
 /// All the components you need to render image font text 'in the world'. If you
-/// want to use this with `bevy_ui`, use [`ImageFontUiBundle`] instead.
-#[derive(Bundle, Default)]
-pub struct ImageFontBundle {
-    pub text: ImageFontText,
-    pub sprite: SpriteBundle,
-}
+/// want to use this with `bevy_ui`, use [`ImageFontUiText`] instead.
+#[derive(Component, Debug, Default, Clone, Reflect)]
+#[require(ImageFontText, Sprite)]
+pub struct ImageFontSpriteText;
 
 /// All the components you need to render image font text in the UI. If you want
-/// to display text as an entity in the world, use [`ImageFontBundle`] instead.
-#[derive(Bundle, Default)]
+/// to display text as an entity in the world, use [`ImageFontSpriteText`]
+/// instead.
+#[derive(Component, Debug, Default, Clone, Reflect)]
 #[cfg(feature = "ui")]
-pub struct ImageFontUiBundle {
-    pub text: ImageFontText,
-    pub node: ImageBundle,
-}
+#[require(ImageFontText, ImageNode)]
+pub struct ImageFontUiText;
 
 /// System that renders each [`ImageFontText`] into the corresponding
 /// `Handle<Image>`. This is mainly for use with sprites.
 pub fn render_sprites(
-    mut query: Query<(&ImageFontText, &mut Handle<Image>), Changed<ImageFontText>>,
+    mut query: Query<(&ImageFontText, &mut Sprite), Changed<ImageFontText>>,
     image_fonts: Res<Assets<ImageFont>>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -124,7 +121,7 @@ pub fn render_sprites(
         // don't need to clear the old image since it'll be no longer live
         match render_text(image_font_text, image_fonts.as_ref(), images.as_ref()) {
             Ok(image) => {
-                *image_handle = images.add(image);
+                image_handle.image = images.add(image);
             }
             Err(e) => {
                 error!(
@@ -140,7 +137,7 @@ pub fn render_sprites(
 /// System that renders each [`ImageFontText`] into the corresponding
 /// [`UiImage`].
 pub fn render_ui_images(
-    mut query: Query<(&ImageFontText, &mut UiImage), Changed<ImageFontText>>,
+    mut query: Query<(&ImageFontText, &mut ImageNode), Changed<ImageFontText>>,
     image_fonts: Res<Assets<ImageFont>>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -149,7 +146,7 @@ pub fn render_ui_images(
         // don't need to clear the old image since it'll be no longer live
         match render_text(image_font_text, image_fonts.as_ref(), images.as_ref()) {
             Ok(image) => {
-                ui_image.texture = images.add(image);
+                ui_image.image = images.add(image);
             }
             Err(e) => {
                 error!(
