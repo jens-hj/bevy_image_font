@@ -236,7 +236,7 @@ pub fn render_text(
         let width = rect.width();
         let height = rect.height();
         output_image.copy_from(
-            &*font_texture.view(rect.min.x as u32, rect.min.y as u32, width, height),
+            &*font_texture.view(rect.min.x, rect.min.y, width, height),
             x,
             0,
         )?;
