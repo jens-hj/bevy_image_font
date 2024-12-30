@@ -58,4 +58,4 @@ jobs:
                   body: |
                       ${{ steps.extract-release-notes.outputs.release_notes }}
 
-                      https://crates.io/crates/${{ github.repository }}/${{ env.RELEASE_VERSION }}
+                      https://crates.io/crates/${{ github.repository.name }}/${{ env.RELEASE_VERSION }}
