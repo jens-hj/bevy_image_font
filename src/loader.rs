@@ -80,7 +80,9 @@ impl ImageFontLayout {
         match self {
             ImageFontLayout::Automatic(str) => {
                 // trim() removes whitespace, which is not what we want!
-                let str = str.trim_start_matches('\n').trim_end_matches('\n');
+                let str = str
+                    .trim_start_matches(['\r', '\n'])
+                    .trim_end_matches(['\r', '\n']);
                 let mut rect_map = HashMap::new();
                 let max_chars_per_line = str
                     .lines()
