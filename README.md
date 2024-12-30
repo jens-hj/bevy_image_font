@@ -4,24 +4,24 @@
 
 **Supported**
 
-- Unicode (anything that fits in a single codepoint)
-- Specifying the coordinates with a string containing the letters in proper order (see the example asset)
-- Manually specifying the rects (including non-uniform sizes)
+-   Unicode (anything that fits in a single codepoint)
+-   Specifying the coordinates with a string containing the letters in proper order (see the example asset)
+-   Manually specifying the rects (including non-uniform sizes)
 
 **Future work**
 
-- Padding and offsets for automatic texture layout
-- Newlines embedding in strings
+-   Padding and offsets for automatic texture layout
+-   Newlines embedding in strings
 
 **Out of scope**
 
-- Rendering from 'actual' bitmap fonts
-- Automatic line wrapping
+-   Rendering from 'actual' bitmap fonts
+-   Automatic line wrapping
 
 ### Caveats
 
-- You need to have a portion of the texture that's just blank and 'map' the space character to it.
-- Newlines are not currently supported.
+-   You need to have a portion of the texture that's just blank and 'map' the space character to it.
+-   Newlines are not currently supported.
 
 ## How to use
 
@@ -38,9 +38,25 @@ If you're not using `bevy_ui`, you can disable the `bevy_ui` feature (enabled by
 
 This crate uses the `image` crate to load images, but only enables PNG support by default. If you need some other format, add your own dependency on (the same version of) `image` and enable the relevant features.
 
-## How it works
+## Contributing
 
+Please run `git config --local core.hooksPath .githooks` after you have cloned the repo to make sure your local Git repo is configured to run our Git hooks, which takes care of things like not allowing you to commit code that doesn't follow our coding standards.
 
 ## Credits
 
 The sample font is by [gnsh](https://opengameart.org/content/bitmap-font-0).
+
+## License
+
+Licensed under either of
+
+-   Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+-   MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
