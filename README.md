@@ -40,7 +40,9 @@ This crate uses the `image` crate to load images, but only enables PNG support b
 
 ## Contributing
 
-Please run `git config --local core.hooksPath .githooks` after you have cloned the repo to make sure your local Git repo is configured to run our Git hooks, which takes care of things like not allowing you to commit code that doesn't follow our coding standards.
+Please run `git config --local core.hooksPath .githooks` after you have cloned the repo to make sure your local Git repo is configured to run our Git hooks, which takes care of things like not allowing you to commit code that doesn't follow our coding standards. These hooks require the following additional tools:
+
+-   `cargo-hack`: `cargo install cargo-hack --locked`
 
 ## Credits
 

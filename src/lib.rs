@@ -106,6 +106,7 @@ pub struct ImageFontBundle {
 /// All the components you need to render image font text in the UI. If you want
 /// to display text as an entity in the world, use [`ImageFontBundle`] instead.
 #[derive(Bundle, Default)]
+#[cfg(feature = "ui")]
 pub struct ImageFontUiBundle {
     pub text: ImageFontText,
     pub node: ImageBundle,
