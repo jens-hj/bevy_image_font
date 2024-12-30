@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2024-12-30
+
+### Changed
+
+- Crate renamed from `extol_image_font` to `bevy_image_font` and has a new maintainer.
+
 ### Fixed
 
 - Only declare `ImageFontUiBundle` when feature `ui` is enabled, as it's useless otherwise and because `ImageBundle` is unavailable without `bevy`'s `bevy_ui` feature enabled.
@@ -17,3 +23,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First public release; prior versions are not on Cargo.
 
 [0.4.0]: https://github.com/ilyvion/bevy_image_font/releases/tag/v0.4.0
+[unreleased]: https://github.com/ilyvion/bevy_image_font/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/ilyvion/bevy_image_font/compare/c98d7a05c78be9e1bc8ce46145a2559754ff2924...v0.5.0

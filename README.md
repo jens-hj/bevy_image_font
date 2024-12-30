@@ -32,7 +32,15 @@
 - You need to have a portion of the texture that's just blank and 'map' the space character to it.
 - Newlines are not currently supported.
 
-## How to use
+## Usage
+
+```toml
+[dependencies]
+bevy = "0.14"
+bevy_image_font = "0.6"
+```
+
+### How to use
 
 If your text sprites aren't pixel-accurate, note that Bevy anchors sprites at the center by default. This causes sprites with odd pixel dimensions to land on non-integer positions, resulting in blurry rendering. To fix this, use a non-`Center` anchor like `Anchor::TopLeft` or adjust the translation of centered sprites. See [the sprite example] for more details.
 
@@ -46,6 +54,14 @@ See [the bevy_ui example] for sample usage using the `bevy_asset_loader` crate t
 If you're not using `bevy_ui`, you can disable the `bevy_ui` feature (enabled by default) to avoid taking a dependency on that.
 
 This crate uses the `image` crate to load images, but only enables PNG support by default. If you need some other format, add your own dependency on (the same version of) `image` and enable the relevant features.
+
+## Bevy Version Support
+
+I intend to track the latest release version of Bevy. PRs supporting this are welcome!
+
+| bevy | bevy_image_font |
+| ---- | --------------- |
+| 0.14 | 0.5             |
 
 ## Contributing
 
