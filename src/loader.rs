@@ -6,6 +6,7 @@ use bevy::{
     prelude::*,
     utils::HashMap,
 };
+use bevy_image::Image;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -170,11 +171,11 @@ impl AssetLoader for ImageFontLoader {
 
     type Error = ImageFontLoadError;
 
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a Self::Settings,
-        load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut str = String::new();
         reader.read_to_string(&mut str).await?;
@@ -188,8 +189,8 @@ impl AssetLoader for ImageFontLoader {
             .join(disk_format.image.clone());
         let image = load_context
             .loader()
-            .direct()
-            .untyped()
+            .immediate()
+            .with_unknown_type()
             .load(image_path.clone())
             .await?
             .take::<Image>()
