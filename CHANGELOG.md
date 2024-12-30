@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - 2024-12-30
 
+### Changed
+
+- Crate renamed from `extol_image_font` to `bevy_image_font` and has a new maintainer.
+
 ### Fixed
 
 - Only declare `ImageFontUiBundle` when feature `ui` is enabled, as it's useless otherwise and because `ImageBundle` is unavailable without `bevy`'s `bevy_ui` feature enabled.
