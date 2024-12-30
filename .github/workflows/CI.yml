@@ -1,0 +1,203 @@
+name: Rust
+
+on:
+    push:
+        branches: [main]
+        paths-ignore:
+            - ".gitignore"
+            - ".git-blame-ignore-revs"
+    pull_request:
+        branches: [main]
+        paths-ignore:
+            - ".gitignore"
+            - ".git-blame-ignore-revs"
+
+env:
+    CARGO_TERM_COLOR: always
+
+jobs:
+    check:
+        name: Check
+        runs-on: ubuntu-latest
+        env:
+            RUSTFLAGS: -Dwarnings
+            RUST_BACKTRACE: 1
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+
+            - name: Cargo check
+              run: cargo check --all-features
+
+    test:
+        name: Test
+        runs-on: ${{ matrix.os }}
+        env:
+            RUST_BACKTRACE: 1
+        needs: check
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest]
+                toolchain: [stable, beta, nightly]
+                include:
+                    - os: windows-latest
+                      toolchain: nightly
+                    - os: macos-latest
+                      toolchain: nightly
+        permissions:
+            checks: write
+        steps:
+            - name: Checkout source code
+              uses: actions/checkout@v4
+              with:
+                  submodules: true
+
+            - name: Install ${{ matrix.toolchain }} toolchain
+              uses: dtolnay/rust-toolchain@master
+              with:
+                  toolchain: ${{ matrix.toolchain }}
+
+            - name: Cache the Cargo build files
+              uses: Leafwing-Studios/cargo-cache@v2
+
+            - name: Install cargo-hack
+              uses: taiki-e/install-action@v2
+              with:
+                  tool: cargo-hack
+
+            - name: Cargo test
+              id: tests
+              run: cargo hack --feature-powerset --keep-going test --message-format=json --no-fail-fast --workspace > tests.json
+
+            - name: Cargo test (with output on failure)
+              run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace
+              if: failure() && steps.tests.outcome == 'failure'
+
+            - name: Cargo metadata
+              id: metadata
+              run: cargo metadata --format-version 1 > metadata.json
+              if: always()
+
+            - name: Create test annotations
+              if: always()
+              uses: ilyvion/cargo-test-annotations@master
+              with:
+                  metadata: "metadata.json"
+                  tests: "tests.json"
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  name: cargo-test-annotations (${{ matrix.os }}, ${{ matrix.toolchain }})
+
+    miri:
+        name: Miri
+        runs-on: ubuntu-latest
+        needs: check
+        continue-on-error: true
+        steps:
+            - name: Checkout source code
+              uses: actions/checkout@v4
+              with:
+                  submodules: true
+
+            - name: Install Rust
+              uses: dtolnay/rust-toolchain@nightly
+              with:
+                  components: miri
+
+            - name: Cache the Cargo build files
+              uses: Leafwing-Studios/cargo-cache@v2
+
+            - name: Setup miri
+              run: cargo miri setup
+
+            - name: Run miri
+              run: cargo miri test --all-features
+
+    style:
+        name: Check Style
+        runs-on: ubuntu-latest
+        needs: check
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+
+            - name: Install stable toolchain
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                  components: clippy, rustfmt
+
+            - name: Cache the Cargo build files
+              uses: Leafwing-Studios/cargo-cache@v2
+
+            - name: Run cargo fmt
+              run: cargo fmt --all -- --check
+
+            - name: Run cargo clippy
+              run: cargo clippy --all-features
+
+    # TODO: Add later
+    # coverage:
+    #     name: Report coverage
+    #     runs-on: ubuntu-latest
+    #     needs: test
+    #     if: github.event_name != 'pull_request'
+    #     container:
+    #         image: xd009642/tarpaulin:develop-nightly
+    #         options: --security-opt seccomp=unconfined
+
+    #     steps:
+    #         - name: Checkout repository
+    #           uses: actions/checkout@v4
+
+    #         - name: Generate code coverage
+    #           run: |
+    #               cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
+
+    #         - name: Upload coverage
+    #           uses: codecov/codecov-action@v2
+    #           with:
+    #               token: ${{ secrets.CODECOV_TOKEN }}
+    #               fail_ci_if_error: true
+
+    docs:
+        name: Documentation
+        runs-on: ubuntu-latest
+        needs: check
+        if: github.event_name != 'pull_request'
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout source code
+              uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - name: Install Rust
+              uses: dtolnay/rust-toolchain@nightly
+
+            - name: Cache the Cargo build files
+              uses: Leafwing-Studios/cargo-cache@v2
+
+            - name: Build documentation
+              run: cargo doc --verbose --no-deps --all-features --workspace
+              env:
+                  RUSTDOCFLAGS: --cfg docsrs
+
+            - name: Finalize documentation
+              run: |
+                  CRATE_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]' | cut -f2 -d"/")
+                  echo "<meta http-equiv=\"refresh\" content=\"0; url=${CRATE_NAME/-/_}\">" > target/doc/index.html
+                  touch target/doc/.nojekyll
+
+            - name: Upload as artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: Documentation
+                  path: target/doc
+
+            - name: Deploy
+              uses: JamesIves/github-pages-deploy-action@v4
+              with:
+                  folder: target/doc
