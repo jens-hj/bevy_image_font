@@ -135,7 +135,7 @@ impl ImageFontLayout {
 /// to write these. See the docs for [`ImageFontLayout`]'s variants for
 /// information on how to write the syntax, or [the example font's RON asset].
 ///
-/// [the example font's RON asset](https://github.com/deifactor/bevy_image_font/blob/main/assets/example_font.image_font.ron)
+/// [the example font's RON asset](https://github.com/ilyvion/bevy_image_font/blob/main/assets/example_font.image_font.ron)
 #[derive(Serialize, Deserialize)]
 pub struct ImageFontSettings {
     pub image: PathBuf,

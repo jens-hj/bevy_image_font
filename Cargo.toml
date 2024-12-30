@@ -10,7 +10,7 @@ categories = ["game-development"]
 description = "Render pixel fonts from PNGs in Bevy."
 keywords = ["gamedev", "bevy"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/deifactor/bevy_image_font"
+repository = "https://github.com/ilyvion/bevy_image_font"
 
 [features]
 default = ["ui"]

@@ -4,8 +4,6 @@
 [![Docs.io](https://docs.rs/bevy_image_font/badge.svg)](https://docs.rs/bevy_image_font)
 [![Docs master](https://img.shields.io/static/v1?label=docs&message=master&color=5479ab)](https://ilyvion.github.io/bevy_image_font/)
 [![Rust](https://github.com/ilyvion/bevy_image_font/actions/workflows/CI.yml/badge.svg)](https://github.com/ilyvion/bevy_image_font/actions/workflows/CI.yml)
-[![codecov](https://codecov.io/gh/ilyvion/bevy_image_font/branch/master/graph/badge.svg?token=HHJWVMF7GS)](https://codecov.io/gh/ilyvion/bevy_image_font)
-[![Codacy](https://app.codacy.com/project/badge/Grade/a77f961673f646fab6aa6d82b8d73050)](https://www.codacy.com/gh/ilyvion/bevy_image_font/dashboard?utm_source=github.com&utm_medium=referral&utm_content=alexschrod/bevy_image_font&utm_campaign=Badge_Grade)
 
 `bevy_image_font` allows rendering fonts that are stored as a single image (typically PNG), with each letter at a given location. This is common in game development, especially for pixel art fonts, since it allows the use of colors and creating a font can be done using any image editor as opposed to specialized software. These are also sometimes known as 'pixel fonts', but I choose the name 'image font' to be more precise (since bitmap fonts stored in OTB could also be called 'pixel fonts').
 
@@ -48,8 +46,8 @@ Just take any entity with a `Handle<Image>` or `UiImage` component, such as some
 
 See [the bevy_ui example] for sample usage using the `bevy_asset_loader` crate to construct handles to the texture layout and image, or [the sprite example] if you want to use pixel fonts 'in the world' (such as for flying damage text).
 
-[the sprite example]: https://github.com/deifactor/bevy_image_font/blob/main/examples/sprite.rs
-[the bevy_ui example]: https://github.com/deifactor/bevy_image_font/blob/main/examples/bevy_ui.rs
+[the sprite example]: https://github.com/ilyvion/bevy_image_font/blob/main/examples/sprite.rs
+[the bevy_ui example]: https://github.com/ilyvion/bevy_image_font/blob/main/examples/bevy_ui.rs
 
 If you're not using `bevy_ui`, you can disable the `bevy_ui` feature (enabled by default) to avoid taking a dependency on that.
 
