@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext, LoadDirectError},
     prelude::*,
-    utils::{BoxedFuture, HashMap},
+    utils::HashMap,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -76,7 +76,7 @@ pub enum ImageFontLayout {
 
 impl ImageFontLayout {
     /// Given the image size, returns a map from each codepoint to its location.
-    fn into_char_map(self, size: UVec2) -> HashMap<char, Rect> {
+    fn into_char_map(self, size: UVec2) -> HashMap<char, URect> {
         match self {
             ImageFontLayout::Automatic(str) => {
                 // trim() removes whitespace, which is not what we want!
@@ -106,16 +106,16 @@ impl ImageFontLayout {
                     );
                 }
 
-                let rect_width = (size.x / max_chars_per_line) as f32;
-                let rect_height = (size.y / line_count) as f32;
+                let rect_width = size.x / max_chars_per_line;
+                let rect_height = size.y / line_count;
 
                 for (row, line) in str.lines().enumerate() {
                     for (col, char) in line.chars().enumerate() {
-                        let rect = Rect::new(
-                            rect_width * col as f32,
-                            rect_height * row as f32,
-                            rect_width * (col + 1) as f32,
-                            rect_height * (row + 1) as f32,
+                        let rect = URect::new(
+                            rect_width * col as u32,
+                            rect_height * row as u32,
+                            rect_width * (col + 1) as u32,
+                            rect_height * (row + 1) as u32,
                         );
                         rect_map.insert(char, rect);
                     }
@@ -124,17 +124,9 @@ impl ImageFontLayout {
             }
             ImageFontLayout::ManualMonospace { size, coords } => coords
                 .into_iter()
-                .map(|(c, top_left)| {
-                    (
-                        c,
-                        Rect::from_corners(top_left.as_vec2(), (size + top_left).as_vec2()),
-                    )
-                })
+                .map(|(c, top_left)| (c, URect::from_corners(top_left, size + top_left)))
                 .collect(),
-            ImageFontLayout::Manual(urect_map) => urect_map
-                .into_iter()
-                .map(|(k, v)| (k, v.as_rect()))
-                .collect(),
+            ImageFontLayout::Manual(urect_map) => urect_map,
         }
     }
 }
@@ -178,35 +170,36 @@ impl AssetLoader for ImageFontLoader {
 
     type Error = ImageFontLoadError;
 
-    fn load<'a>(
+    async fn load<'a>(
         &'a self,
-        reader: &'a mut Reader,
+        reader: &'a mut Reader<'_>,
         _settings: &'a Self::Settings,
-        load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut str = String::new();
-            reader.read_to_string(&mut str).await?;
-            let disk_format: ImageFontSettings = ron::from_str(&str)?;
+        load_context: &'a mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut str = String::new();
+        reader.read_to_string(&mut str).await?;
+        let disk_format: ImageFontSettings = ron::from_str(&str)?;
 
-            // need the image loaded immediately because we need its size
-            let image_path = load_context
-                .path()
-                .parent()
-                .expect("asset's parent is None?")
-                .join(disk_format.image.clone());
-            let image = load_context
-                .load_direct(image_path.clone())
-                .await?
-                .take::<Image>()
-                .ok_or(ImageFontLoadError::NotAnImage(image_path))?;
+        // need the image loaded immediately because we need its size
+        let image_path = load_context
+            .path()
+            .parent()
+            .expect("asset's parent is None?")
+            .join(disk_format.image.clone());
+        let image = load_context
+            .loader()
+            .direct()
+            .untyped()
+            .load(image_path.clone())
+            .await?
+            .take::<Image>()
+            .ok_or(ImageFontLoadError::NotAnImage(image_path))?;
 
-            let size = image.size();
-            let char_map = disk_format.layout.into_char_map(size);
-            let image_handle = load_context.add_labeled_asset("texture".into(), image);
+        let size = image.size();
+        let char_map = disk_format.layout.into_char_map(size);
+        let image_handle = load_context.add_labeled_asset("texture".into(), image);
 
-            Ok(ImageFont::from_char_map(image_handle, size, &char_map))
-        })
+        Ok(ImageFont::from_char_map(image_handle, size, &char_map))
     }
 
     fn extensions(&self) -> &[&str] {

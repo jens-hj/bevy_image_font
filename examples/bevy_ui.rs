@@ -10,7 +10,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, ImageFontPlugin))
         .init_collection::<DemoAssets>()
-        .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
+        .insert_resource(ClearColor(Color::srgb(0.2, 0.2, 0.2)))
         .init_resource::<VowsJudged>()
         .add_systems(Startup, spawn_ui)
         .add_systems(
