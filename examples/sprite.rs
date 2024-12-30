@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
-use extol_image_font::{ImageFont, ImageFontBundle, ImageFontPlugin, ImageFontText};
+use bevy_image_font::{ImageFont, ImageFontBundle, ImageFontPlugin, ImageFontText};
 
 fn main() {
     App::new()

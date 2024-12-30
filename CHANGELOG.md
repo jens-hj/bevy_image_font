@@ -16,4 +16,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First public release; prior versions are not on Cargo.
 
-[0.4.0]: https://github.com/ilyvion/extol_image_font/releases/tag/v0.4.0
+[0.4.0]: https://github.com/ilyvion/bevy_image_font/releases/tag/v0.4.0

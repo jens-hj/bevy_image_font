@@ -19,7 +19,7 @@ pub enum ImageFontLayout {
     /// are not (since your font might use them as padding).
     ///
     /// ```rust
-    /// # use extol_image_font::loader::*;
+    /// # use bevy_image_font::loader::*;
     /// // note that we have a raw string *inside* a raw string here...
     /// let s = r###"
     ///
@@ -42,7 +42,7 @@ pub enum ImageFontLayout {
     /// will look like
     ///
     /// ```rust
-    /// # use extol_image_font::loader::*;
+    /// # use bevy_image_font::loader::*;
     /// let s = r#"
     /// ManualMonospace(
     ///   size: (4, 8),
@@ -62,7 +62,7 @@ pub enum ImageFontLayout {
     /// Fully specifies the bounds of each character. The most general case.
     ///
     /// ```rust
-    /// # use extol_image_font::loader::*;
+    /// # use bevy_image_font::loader::*;
     /// let s = r#"
     /// Manual({
     /// 'a': URect(min: (0, 0), max: (10, 20)),
@@ -135,7 +135,7 @@ impl ImageFontLayout {
 /// to write these. See the docs for [`ImageFontLayout`]'s variants for
 /// information on how to write the syntax, or [the example font's RON asset].
 ///
-/// [the example font's RON asset](https://github.com/deifactor/extol_image_font/blob/main/assets/example_font.image_font.ron)
+/// [the example font's RON asset](https://github.com/deifactor/bevy_image_font/blob/main/assets/example_font.image_font.ron)
 #[derive(Serialize, Deserialize)]
 pub struct ImageFontSettings {
     pub image: PathBuf,

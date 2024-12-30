@@ -1,7 +1,7 @@
 /// Shows use of the plugin with bevy_ui.
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
-use extol_image_font::{ImageFont, ImageFontPlugin, ImageFontText, ImageFontUiBundle};
+use bevy_image_font::{ImageFont, ImageFontPlugin, ImageFontText, ImageFontUiBundle};
 
 #[derive(Default, Debug, Resource)]
 struct VowsJudged(u32);
