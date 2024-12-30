@@ -1,6 +1,7 @@
 /// Demonstrates rendering image font text at both its 'native' height and a
 /// scaled-up height.
 use bevy::prelude::*;
+use bevy::sprite::Anchor;
 use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
 use extol_image_font::{ImageFont, ImageFontBundle, ImageFontPlugin, ImageFontText};
 
@@ -22,24 +23,41 @@ struct DemoAssets {
 fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
     commands.spawn(Camera2dBundle::default());
 
-    // XXX: shouldn't be exactly on integer coordinates. not sure why.
     commands.spawn(ImageFontBundle {
         text: ImageFontText::default()
-            .text("Sphinx of black quartz, judge my vow!")
+            .text(TEXT)
             .font(assets.image_font.clone())
             .font_height(36.0),
         sprite: SpriteBundle {
-            transform: Transform::from_translation(Vec3::new(0.2, 0.2, 0.2)),
+            // Our font is 45 pixels wide per character, and with an odd number of characters, the
+            // text aligns to the middle of a pixel, causing imperfect rendering. Shifting the
+            // position by 0.5 pixels ensures alignment to pixel boundaries, resulting in crisp,
+            // pixel-perfect rendering.
+            transform: Transform::from_translation(Vec3::new(0.5, 0., 0.)),
             ..default()
         },
     });
     commands.spawn(ImageFontBundle {
         text: ImageFontText::default()
-            .text("Sphinx of black quartz, judge my vow!")
+            .text(TEXT)
             .font(assets.image_font.clone()),
         sprite: SpriteBundle {
-            transform: Transform::from_translation(Vec3::new(0.2, 40.2, 0.2)),
+            // Instead of shifting the character by 0.5 pixels when the text lands in the middle of
+            // a pixel, we can anchor the sprite to an edge and move it by a whole number of pixels.
+            // To center it with the text above, we shift it left by half its width.
+            sprite: Sprite {
+                anchor: Anchor::CenterLeft,
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(
+                -((TEXT.chars().count() * FONT_WIDTH / 2) as f32),
+                40.,
+                0.,
+            )),
             ..default()
         },
     });
 }
+
+const TEXT: &str = "Sphinx of black quartz, judge my vow!";
+const FONT_WIDTH: usize = 5;

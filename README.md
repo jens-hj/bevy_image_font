@@ -25,7 +25,7 @@
 
 ## How to use
 
-**Note that for pixel-accurate rendering, locating the text at integer coordinates 'in the world' can cause it to be blurry.** I'm not sure why. If this happens, you'll want to offset the x/y coordinates by a small amount like 0.1. This seems to be less of an issue using this crate with bevy_ui.
+If your text sprites aren't pixel-accurate, note that Bevy anchors sprites at the center by default. This causes sprites with odd pixel dimensions to land on non-integer positions, resulting in blurry rendering. To fix this, use a non-`Center` anchor like `Anchor::TopLeft` or adjust the translation of centered sprites. See [the sprite example] for more details.
 
 Just take any entity with a `Handle<Image>` or `UiImage` component, such as something created with a `SpriteBundle` or `ImageBundle`, and add a `ImageFontText` component to it.
 

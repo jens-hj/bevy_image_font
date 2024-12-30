@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 -   Only declare `ImageFontUiBundle` when feature `ui` is enabled, as it's useless otherwise and because `ImageBundle` is unavailable without `bevy`'s `bevy_ui` feature enabled.
+-   Clarify why text might sometimes render blurry in README. Update `sprite` example to illustrate work-arounds.
 
 ## [0.4.0] - 2024-04-04
 
