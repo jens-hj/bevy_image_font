@@ -69,25 +69,29 @@ jobs:
 
             - name: Cargo test
               id: tests
-              run: cargo hack --feature-powerset --keep-going test --message-format=json --no-fail-fast --workspace > tests.json
-
-            - name: Cargo test (with output on failure)
               run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace
-              if: failure() && steps.tests.outcome == 'failure'
 
-            - name: Cargo metadata
-              id: metadata
-              run: cargo metadata --format-version 1 > metadata.json
-              if: always()
+            # - name: Cargo test
+            #   id: tests
+            #   run: cargo hack --feature-powerset --keep-going test --message-format=json --no-fail-fast --workspace > tests.json
 
-            - name: Create test annotations
-              if: always()
-              uses: ilyvion/cargo-test-annotations@master
-              with:
-                  metadata: "metadata.json"
-                  tests: "tests.json"
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  name: cargo-test-annotations (${{ matrix.os }}, ${{ matrix.toolchain }})
+            # - name: Cargo test (with output on failure)
+            #   run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace
+            #   if: failure() && steps.tests.outcome == 'failure'
+
+            # - name: Cargo metadata
+            #   id: metadata
+            #   run: cargo metadata --format-version 1 > metadata.json
+            #   if: always()
+
+            # - name: Create test annotations
+            #   if: always()
+            #   uses: ilyvion/cargo-test-annotations@master
+            #   with:
+            #       metadata: "metadata.json"
+            #       tests: "tests.json"
+            #       token: ${{ secrets.GITHUB_TOKEN }}
+            #       name: cargo-test-annotations (${{ matrix.os }}, ${{ matrix.toolchain }})
 
     miri:
         name: Miri
