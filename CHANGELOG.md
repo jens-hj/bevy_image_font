@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   Only declare `ImageFontUiBundle` when feature `ui` is enabled, as it's useless otherwise and because `ImageBundle` is unavailable without `bevy`'s `bevy_ui` feature enabled.
--   Clarify why text might sometimes render blurry in README. Update `sprite` example to illustrate work-arounds.
+- Only declare `ImageFontUiBundle` when feature `ui` is enabled, as it's useless otherwise and because `ImageBundle` is unavailable without `bevy`'s `bevy_ui` feature enabled.
+- Clarify why text might sometimes render blurry in README. Update `sprite` example to illustrate work-arounds.
 
 ## [0.4.0] - 2024-04-04
 
--   First public release; prior versions are not on Cargo.
+- First public release; prior versions are not on Cargo.
 
 [0.4.0]: https://github.com/ilyvion/extol_image_font/releases/tag/v0.4.0

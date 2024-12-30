@@ -11,24 +11,24 @@
 
 **Supported**
 
--   Unicode (anything that fits in a single codepoint)
--   Specifying the coordinates with a string containing the letters in proper order (see the example asset)
--   Manually specifying the rects (including non-uniform sizes)
+- Unicode (anything that fits in a single codepoint)
+- Specifying the coordinates with a string containing the letters in proper order (see the example asset)
+- Manually specifying the rects (including non-uniform sizes)
 
 **Future work**
 
--   Padding and offsets for automatic texture layout
--   Newlines embedding in strings
+- Padding and offsets for automatic texture layout
+- Newlines embedding in strings
 
 **Out of scope**
 
--   Rendering from 'actual' bitmap fonts
--   Automatic line wrapping
+- Rendering from 'actual' bitmap fonts
+- Automatic line wrapping
 
 ### Caveats
 
--   You need to have a portion of the texture that's just blank and 'map' the space character to it.
--   Newlines are not currently supported.
+- You need to have a portion of the texture that's just blank and 'map' the space character to it.
+- Newlines are not currently supported.
 
 ## How to use
 
@@ -49,7 +49,7 @@ This crate uses the `image` crate to load images, but only enables PNG support b
 
 Please run `git config --local core.hooksPath .githooks` after you have cloned the repo to make sure your local Git repo is configured to run our Git hooks, which takes care of things like not allowing you to commit code that doesn't follow our coding standards. These hooks require the following additional tools:
 
--   `cargo-hack`: `cargo install cargo-hack --locked`
+- `cargo-hack`: `cargo install cargo-hack --locked`
 
 ## Credits
 
@@ -59,8 +59,8 @@ The sample font is by [gnsh](https://opengameart.org/content/bitmap-font-0).
 
 Licensed under either of
 
--   Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
--   MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 
