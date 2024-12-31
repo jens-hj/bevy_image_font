@@ -21,7 +21,7 @@ use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use derive_setters::Setters;
 
-use crate::{mark_changed_fonts_as_dirty, ImageFont, ImageFontSet, ImageFontText};
+use crate::{sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText};
 
 #[derive(Default)]
 pub(crate) struct AtlasSpritesPlugin;
@@ -31,7 +31,7 @@ impl Plugin for AtlasSpritesPlugin {
         app.add_systems(
             PostUpdate,
             set_up_sprites
-                .after(mark_changed_fonts_as_dirty)
+                .after(sync_texts_with_font_changes)
                 .in_set(ImageFontSet),
         );
 

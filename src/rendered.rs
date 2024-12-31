@@ -24,7 +24,7 @@ use image::{
 };
 use thiserror::Error;
 
-use crate::{mark_changed_fonts_as_dirty, ImageFont, ImageFontSet, ImageFontText};
+use crate::{sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText};
 
 #[derive(Default)]
 pub(crate) struct RenderedPlugin;
@@ -34,7 +34,7 @@ impl Plugin for RenderedPlugin {
         app.add_systems(
             PostUpdate,
             render_text_to_sprite
-                .after(mark_changed_fonts_as_dirty)
+                .after(sync_texts_with_font_changes)
                 .in_set(ImageFontSet),
         );
 
@@ -46,7 +46,7 @@ impl Plugin for RenderedPlugin {
                 render_text_to_image_node
                     .in_set(ImageFontSet)
                     .before(update_image_content_size_system)
-                    .after(mark_changed_fonts_as_dirty),
+                    .after(sync_texts_with_font_changes),
             );
         }
     }

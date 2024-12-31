@@ -67,7 +67,7 @@ impl Plugin for ImageFontPlugin {
             .init_asset_loader::<loader::ImageFontLoader>()
             .register_type::<ImageFont>()
             .register_type::<ImageFontText>()
-            .add_systems(PostUpdate, mark_changed_fonts_as_dirty);
+            .add_systems(PostUpdate, sync_texts_with_font_changes);
 
         #[cfg(feature = "rendered")]
         app.add_plugins(RenderedPlugin);
@@ -152,28 +152,37 @@ pub struct ImageFontText {
 }
 
 /// Marks any text where the underlying [`ImageFont`] asset has changed as
-/// dirty, which will cause it to be rerendered.
+/// changed, which will cause it to be re-rendered.
 #[allow(private_interfaces)]
-pub fn mark_changed_fonts_as_dirty(
+pub fn sync_texts_with_font_changes(
     mut events: EventReader<AssetEvent<ImageFont>>,
     mut query: Query<&mut ImageFontText>,
     mut changed_fonts: Local<CachedHashSet>,
 ) {
-    changed_fonts.extend(events.read().copied().filter_map(|event| match event {
-        AssetEvent::Modified { id } | AssetEvent::LoadedWithDependencies { id } => {
-            info!("Image font {id} finished loading; marking as dirty");
-            Some(id)
-        }
-        _ => None,
-    }));
+    // Extract relevant IDs from events
+    for id in events.read().filter_map(extract_asset_id) {
+        info!("Image font {id} finished loading; marking as dirty");
+        changed_fonts.insert(id);
+    }
 
+    // Update query for affected fonts
     for mut image_font_text in &mut query {
         if changed_fonts.contains(&image_font_text.font.id()) {
             image_font_text.set_changed();
         }
     }
 
+    // Reset the local state
     changed_fonts.clear();
+}
+
+// Helper function to extract the relevant asset ID
+#[inline]
+fn extract_asset_id(event: &AssetEvent<ImageFont>) -> Option<AssetId<ImageFont>> {
+    match event {
+        AssetEvent::Modified { id } | AssetEvent::LoadedWithDependencies { id } => Some(*id),
+        _ => None,
+    }
 }
 
 #[derive(Default, Deref, DerefMut)]
