@@ -24,7 +24,33 @@ use image::{
 };
 use thiserror::Error;
 
-use crate::{ImageFont, ImageFontText};
+use crate::{mark_changed_fonts_as_dirty, ImageFont, ImageFontSet, ImageFontText};
+
+#[derive(Default)]
+pub(crate) struct RenderedPlugin;
+
+impl Plugin for RenderedPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            PostUpdate,
+            render_text_to_sprite
+                .after(mark_changed_fonts_as_dirty)
+                .in_set(ImageFontSet),
+        );
+
+        #[cfg(feature = "ui")]
+        {
+            use bevy::ui::widget::update_image_content_size_system;
+            app.add_systems(
+                PostUpdate,
+                render_text_to_image_node
+                    .in_set(ImageFontSet)
+                    .before(update_image_content_size_system)
+                    .after(mark_changed_fonts_as_dirty),
+            );
+        }
+    }
+}
 
 /// A component for displaying in-world text that has been pre-rendered using an
 /// image font.

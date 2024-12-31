@@ -13,10 +13,11 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/ilyvion/bevy_image_font"
 
 [features]
-default = ["ui", "rendered"]
+default = ["ui", "rendered", "atlas_sprites"]
+atlas_sprites = []
+gizmos = ["bevy/bevy_gizmos"]
 rendered = ["dep:image"]
 ui = ["rendered", "bevy/bevy_ui"]
-#gizmos = ["bevy/bevy_gizmos"]
 
 [dependencies]
 bevy = { version = "0.15", default-features = false, features = [
@@ -50,13 +51,16 @@ bevy = { version = "0.15", default-features = false, features = [
 bevy_asset_loader = { version = "0.22.0", features = ["2d"] }
 
 [[example]]
-name = "bevy_ui"
+name = "rendered_ui"
 required-features = ["rendered", "ui"]
 
 [[example]]
-name = "sprite"
+name = "rendered_sprite"
 required-features = ["rendered"]
 
+[[example]]
+name = "atlased_sprite"
+required-features = ["atlas_sprites"]
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 needless_pass_by_value = "allow"

@@ -4,7 +4,7 @@ use bevy::{
     prelude::*,
     utils::{HashMap, HashSet},
 };
-use bevy_image::Image;
+use bevy_image::{Image, ImageSampler};
 use derive_setters::Setters;
 
 pub mod loader;
@@ -14,6 +14,11 @@ pub mod rendered;
 #[cfg(feature = "rendered")]
 pub use rendered::*;
 
+#[cfg(feature = "atlas_sprites")]
+pub mod atlas_sprites;
+#[cfg(feature = "atlas_sprites")]
+pub use atlas_sprites::*;
+
 #[derive(Default)]
 pub struct ImageFontPlugin;
 
@@ -22,27 +27,14 @@ impl Plugin for ImageFontPlugin {
         app.init_asset::<ImageFont>()
             .init_asset_loader::<loader::ImageFontLoader>()
             .register_type::<ImageFont>()
-            .register_type::<ImageFontText>();
+            .register_type::<ImageFontText>()
+            .add_systems(PostUpdate, mark_changed_fonts_as_dirty);
 
         #[cfg(feature = "rendered")]
-        app.add_systems(
-            PostUpdate,
-            (mark_changed_fonts_as_dirty, rendered::render_text_to_sprite)
-                .chain()
-                .in_set(ImageFontSet),
-        );
+        app.add_plugins(rendered::RenderedPlugin);
 
-        #[cfg(all(feature = "rendered", feature = "ui"))]
-        {
-            use bevy::ui::widget::update_image_content_size_system;
-            app.add_systems(
-                PostUpdate,
-                rendered::render_text_to_image_node
-                    .in_set(ImageFontSet)
-                    .before(update_image_content_size_system)
-                    .after(mark_changed_fonts_as_dirty),
-            );
-        }
+        #[cfg(feature = "atlas_sprites")]
+        app.add_plugins(atlas_sprites::AtlasSpritesPlugin);
     }
 }
 
@@ -52,12 +44,17 @@ pub struct ImageFontSet;
 
 /// An image font as well as the mapping of characters to regions inside it.
 #[derive(Debug, Clone, Reflect, Asset)]
+#[reflect(opaque)]
 pub struct ImageFont {
     pub atlas_layout: Handle<TextureAtlasLayout>,
     pub texture: Handle<Image>,
     /// The glyph used to render `c` is contained in the part of the image
     /// pointed to by `atlas.textures[atlas_character_map[c]]`.
     pub atlas_character_map: HashMap<char, usize>,
+    /// The [`ImageSampler`] to use during font image rendering. The default is
+    /// `nearest`, which scales an image without blurring, keeping the text
+    /// crisp and pixellated.
+    pub image_sampler: ImageSampler,
 }
 
 impl ImageFont {
@@ -78,11 +75,13 @@ impl ImageFont {
         texture: Handle<Image>,
         atlas_character_map: HashMap<char, usize>,
         atlas_layout: Handle<TextureAtlasLayout>,
+        image_sampler: ImageSampler,
     ) -> Self {
         Self {
             atlas_layout,
             texture,
             atlas_character_map,
+            image_sampler,
         }
     }
 

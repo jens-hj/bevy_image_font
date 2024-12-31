@@ -45,7 +45,11 @@ bevy_image_font = "0.6"
 
 ### Usage
 
-Add an `ImageFontText` component to an entity with either a `Sprite` and a `ImageFontPreRenderedText` components, or a `ImageNode` and `ImageFontPreRenderedUiText` components. This will render the text onto the associated texture.
+Add an `ImageFontText` component to an entity along with:
+
+- A `Sprite` and a `ImageFontPreRenderedText` components to render the text onto the associated `Sprite`, or
+- A `ImageNode` and `ImageFontPreRenderedUiText` components to render the text onto the associated `ImageNode`, or
+- A `ImageFontSpriteText` component for atlas-based text rendering.
 
 #### Minimal Example
 
@@ -54,8 +58,8 @@ Here's a minimal example of using `bevy_image_font` to render text.[^cfg] :
 ```rust,no_run
 use bevy::prelude::*;
 use bevy_image_font::{ImageFontPlugin, ImageFontText};
-#[cfg(feature = "rendered")]
-use bevy_image_font::ImageFontPreRenderedText;
+#[cfg(feature = "atlas_sprites")]
+use bevy_image_font::ImageFontSpriteText;
 
 fn main() {
     App::new()
@@ -68,8 +72,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font_handle = asset_server.load("path/to/font_layout.image_font.ron");
 
     commands.spawn((
-        #[cfg(feature = "rendered")]
-        ImageFontPreRenderedText,
+        #[cfg(feature = "atlas_sprites")]
+        ImageFontSpriteText::default(),
         ImageFontText::default()
             .text("Hello, world!")
             .font(font_handle.clone()),
@@ -81,18 +85,20 @@ This example sets up a simple Bevy application with an `ImageFontText` component
 
 See examples for more details:
 
-- [Sprite example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/sprite.rs): Using pixel fonts for in-world text like damage numbers.
-- [Bevy UI example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/bevy_ui.rs): Using `bevy_asset_loader` for texture and font handling.
+- [Rendered sprite example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/rendered_sprite.rs): Using pixel fonts for in-world text like damage numbers.
+- [Rendered UI example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/rendered_ui.rs): Using `bevy_asset_loader` for texture and font handling.
+- [Atlased Sprite Example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/atlased_sprite.rs): Demonstrates rendering text using a sprite atlas with customizable colors and anchors.
 
 #### Note on Pixel Accuracy
 
-Bevy anchors sprites at the center by default, which may cause odd-dimensioned sprites to appear blurry. To avoid this, use non-`Center` anchors like `Anchor::TopLeft` or adjust sprite translations. Refer to the [sprite example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/sprite.rs) for details.
+Bevy anchors sprites at the center by default, which may cause odd-dimensioned sprites to appear blurry. To avoid this, use non-`Center` anchors like `Anchor::TopLeft` or adjust sprite translations. Refer to the [rendered sprite example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/sprite.rs) for details.
 
 ### Optional Features
 
-- Disable the default `rendered` feature if you don't use `ImageFontPreRenderedText` or `ImageFontPreRenderedUiText`. This removes the dependency on the `image` crate.
-- Disable the default `ui` feature if you don't use `ImageFontPreRenderedUiText` to remove a dependency on the `bevy/bevy_ui` feature.
-- The `image` crate is already a dependency of `bevy_image_font`. If your project depends on this crate and you need support for non-PNG formats, add your own dependency on the same version of `image` and enable the relevant features.
+- You can disable the default `atlas_sprites` feature if you don't use `ImageFontSpriteText`.
+- You can disable the default `rendered` feature if you don't use `ImageFontPreRenderedText` or `ImageFontPreRenderedUiText`. This removes the dependency on the `image` crate.
+- You can disable the default `ui` feature if you don't use `ImageFontPreRenderedUiText` to remove a dependency on the `bevy/bevy_ui` feature.
+- If your project depends on this crate and you need support for non-PNG formats, add your own dependency on the same version of `image` and enable the relevant features.
 
 ## Bevy Version Compatibility
 

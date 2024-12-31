@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
     utils::HashMap,
 };
-use bevy_image::Image;
+use bevy_image::{Image, ImageSampler, ImageSamplerDescriptor};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -139,6 +139,7 @@ impl ImageFontLayout {
 ///
 /// [the example font's RON asset](https://github.com/ilyvion/bevy_image_font/blob/main/assets/example_font.image_font.ron)
 #[derive(Serialize, Deserialize)]
+// TODO: Rename to ImageFontDescriptor
 pub struct ImageFontSettings {
     pub image: PathBuf,
     pub layout: ImageFontLayout,
@@ -162,20 +163,36 @@ pub enum ImageFontLoadError {
     NotAnImage(PathBuf),
 }
 
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct ImageFontLoaderSettings {
+    /// The [`ImageSampler`] to use during font image rendering. The default is
+    /// `nearest`, which scales an image without blurring, keeping the text
+    /// crisp and pixellated.
+    pub image_sampler: ImageSampler,
+}
+
+impl Default for ImageFontLoaderSettings {
+    fn default() -> Self {
+        Self {
+            image_sampler: ImageSampler::Descriptor(ImageSamplerDescriptor::nearest()),
+        }
+    }
+}
+
 impl AssetLoader for ImageFontLoader {
     type Asset = ImageFont;
 
     // We could use ImageFontSettings, but an AssetLoader's settings has to
     // imnplement `Default`, and there's no sensible default value for that
     // type.
-    type Settings = ();
+    type Settings = ImageFontLoaderSettings;
 
     type Error = ImageFontLoadError;
 
     async fn load(
         &self,
         reader: &mut dyn Reader,
-        _settings: &Self::Settings,
+        settings: &Self::Settings,
         load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut str = String::new();
@@ -188,7 +205,7 @@ impl AssetLoader for ImageFontLoader {
             .parent()
             .expect("asset's parent is None?")
             .join(disk_format.image.clone());
-        let image = load_context
+        let mut image = load_context
             .loader()
             .immediate()
             .with_unknown_type()
@@ -197,6 +214,8 @@ impl AssetLoader for ImageFontLoader {
             .take::<Image>()
             .ok_or(ImageFontLoadError::NotAnImage(image_path))?;
 
+        image.sampler = settings.image_sampler.clone();
+
         let size = image.size();
         let char_map = disk_format.layout.into_char_map(size);
         let image_handle = load_context.add_labeled_asset(String::from("texture"), image);
@@ -204,7 +223,12 @@ impl AssetLoader for ImageFontLoader {
         let (map, layout) = ImageFont::mapped_atlas_layout_from_char_map(size, &char_map);
         let layout_handle = load_context.add_labeled_asset(String::from("layout"), layout);
 
-        let image_font = ImageFont::from_mapped_atlas_layout(image_handle, map, layout_handle);
+        let image_font = ImageFont::from_mapped_atlas_layout(
+            image_handle,
+            map,
+            layout_handle,
+            settings.image_sampler.clone(),
+        );
         Ok(image_font)
     }
 

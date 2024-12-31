@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Introduced the `rendered` feature, allowing text rendering to `Sprite` and `ImageNode` components using `ImageFontPreRenderedText` and `ImageFontPreRenderedUiText`.
+- **`atlas_sprites` Feature**: Allows text rendering with individual sprites for each character using a texture atlas.
+  - Added `ImageFontSpriteText` component for text rendering via sprite atlases with configurable color and anchor.
+  - Added support for optional gizmo rendering via the `gizmos` feature.
+  - `atlased_sprite.rs` example: Demonstrates rendering text with the `atlas_sprites` feature.
+- Added `ImageFontLoaderSettings` for specifying a custom `ImageSampler` to be used by the font asset loader.
 
 ### Changed
 
@@ -17,6 +22,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `ImageFontSpriteText` to `ImageFontPreRenderedText` and `ImageFontUiText` to `ImageFontPreRenderedUiText`.
 - Refactored text rendering systems into the `rendered` module, making them conditional on the `rendered` feature.
 - Updated `Cargo.toml` to make the `image` dependency optional, activated only with the `rendered` feature.
+- Updated `ImageFont` to include an `ImageSampler` field for enhanced texture sampling control.
+- Renamed examples for clarity with the new `atlas_sprites` feature:
+  - `sprite.rs` → `rendered_sprite.rs`
+  - `bevy_ui.rs` → `rendered_ui.rs`
+
+### Removed
+
+- Redundant font setup logic in individual examples; replaced with reusable components in the `common` module.
+
+### Notes
+
+- This release introduces breaking changes.
 
 ## [0.6.0] - 2024-12-31
 

@@ -5,6 +5,10 @@ use bevy::sprite::Anchor;
 use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
 use bevy_image_font::{ImageFont, ImageFontPlugin, ImageFontPreRenderedText, ImageFontText};
 
+use crate::common::{FONT_WIDTH, TEXT};
+
+mod common;
+
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, ImageFontPlugin))
@@ -55,6 +59,3 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
         )),
     ));
 }
-
-const TEXT: &str = "Sphinx of black quartz, judge my vow!";
-const FONT_WIDTH: usize = 5;
