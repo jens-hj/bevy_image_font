@@ -1,7 +1,7 @@
 /// Shows use of the plugin with bevy_ui.
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
-use bevy_image_font::{ImageFont, ImageFontPlugin, ImageFontText, ImageFontUiText};
+use bevy_image_font::{ImageFont, ImageFontPlugin, ImageFontPreRenderedUiText, ImageFontText};
 
 #[derive(Default, Debug, Resource)]
 struct VowsJudged(u32);
@@ -52,7 +52,7 @@ fn spawn_ui(mut commands: Commands, assets: Res<DemoAssets>) {
                     position_type: PositionType::Relative,
                     ..default()
                 },
-                ImageFontUiText,
+                ImageFontPreRenderedUiText,
                 ImageFontText::default()
                     .text("Press SPACE to judge!")
                     .font(assets.image_font.clone())

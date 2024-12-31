@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
-use bevy_image_font::{ImageFont, ImageFontPlugin, ImageFontSpriteText, ImageFontText};
+use bevy_image_font::{ImageFont, ImageFontPlugin, ImageFontPreRenderedText, ImageFontText};
 
 fn main() {
     App::new()
@@ -24,7 +24,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
     commands.spawn(Camera2d);
 
     commands.spawn((
-        ImageFontSpriteText,
+        ImageFontPreRenderedText,
         ImageFontText::default()
             .text(TEXT)
             .font(assets.image_font.clone())
@@ -36,7 +36,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
         Transform::from_translation(Vec3::new(0.5, 0., 0.)),
     ));
     commands.spawn((
-        ImageFontSpriteText,
+        ImageFontPreRenderedText,
         ImageFontText::default()
             .text(TEXT)
             .font(assets.image_font.clone()),

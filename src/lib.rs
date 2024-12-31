@@ -28,7 +28,7 @@ impl Plugin for ImageFontPlugin {
         app.init_asset::<ImageFont>()
             .add_systems(
                 PostUpdate,
-                (mark_changed_fonts_as_dirty, render_sprites)
+                (mark_changed_fonts_as_dirty, render_text_to_sprite)
                     .chain()
                     .in_set(ImageFontSet),
             )
@@ -38,7 +38,7 @@ impl Plugin for ImageFontPlugin {
         #[cfg(feature = "ui")]
         app.add_systems(
             PostUpdate,
-            render_ui_images
+            render_text_to_image_node
                 .in_set(ImageFontSet)
                 .before(update_image_content_size_system)
                 .after(mark_changed_fonts_as_dirty),
@@ -106,23 +106,30 @@ pub struct ImageFontText {
     pub font_height: Option<f32>,
 }
 
-/// All the components you need to render image font text 'in the world'. If you
-/// want to use this with `bevy_ui`, use [`ImageFontUiText`] instead.
+/// A component for displaying in-world text that has been pre-rendered using an
+/// image font.
+///
+/// This component requires an `ImageFontText` component for determining its
+/// font and text. It renders its text into an image and sets it as the texture
+/// on its `Sprite` component.
 #[derive(Component, Debug, Default, Clone, Reflect)]
 #[require(ImageFontText, Sprite)]
-pub struct ImageFontSpriteText;
+pub struct ImageFontPreRenderedText;
 
-/// All the components you need to render image font text in the UI. If you want
-/// to display text as an entity in the world, use [`ImageFontSpriteText`]
-/// instead.
+/// A component for displaying UI text that has been pre-rendered using an image
+/// font.
+///
+/// This component requires an `ImageFontText` component for determining its
+/// font and text. It renders its text into an image and sets it as the texture
+/// on its `ImageNode` component.
 #[derive(Component, Debug, Default, Clone, Reflect)]
 #[cfg(feature = "ui")]
 #[require(ImageFontText, ImageNode)]
-pub struct ImageFontUiText;
+pub struct ImageFontPreRenderedUiText;
 
-/// System that renders each [`ImageFontText`] into the corresponding
-/// `Handle<Image>`. This is mainly for use with sprites.
-pub fn render_sprites(
+/// System that renders each [`ImageFontText`] into its [`Sprite`]. This system
+/// only runs when the `ImageFontText` changes.
+pub fn render_text_to_sprite(
     mut query: Query<(&ImageFontText, &mut Sprite), Changed<ImageFontText>>,
     image_fonts: Res<Assets<ImageFont>>,
     mut images: ResMut<Assets<Image>>,
@@ -137,9 +144,9 @@ pub fn render_sprites(
 }
 
 #[cfg(feature = "ui")]
-/// System that renders each [`ImageFontText`] into the corresponding
-/// [`UiImage`].
-pub fn render_ui_images(
+/// System that renders each [`ImageFontText`] into its [`ImageNode`]. This
+/// system only runs when the `ImageFontText` changes.
+pub fn render_text_to_image_node(
     mut query: Query<(&ImageFontText, &mut ImageNode), Changed<ImageFontText>>,
     image_fonts: Res<Assets<ImageFont>>,
     mut images: ResMut<Assets<Image>>,
@@ -220,7 +227,7 @@ pub enum ImageFontRenderError {
 /// don't need to use this if you're using the built-in functionality, but if
 /// you want to use this for some other custom plugin/system, you can call this.
 #[allow(clippy::result_large_err)]
-pub fn render_text(
+fn render_text(
     image_font_text: &ImageFontText,
     image_fonts: &Assets<ImageFont>,
     images: &Assets<Image>,

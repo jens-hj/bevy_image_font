@@ -52,7 +52,7 @@ Here's a minimal example of using `bevy_image_font` to render text:
 
 ```rust,no_run
 use bevy::prelude::*;
-use bevy_image_font::{ImageFontPlugin, ImageFontText, ImageFontSpriteText};
+use bevy_image_font::{ImageFontPlugin, ImageFontText, ImageFontPreRenderedText};
 
 fn main() {
     App::new()
@@ -65,7 +65,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font_handle = asset_server.load("path/to/font_layout.image_font.ron");
 
     commands.spawn((
-        ImageFontSpriteText,
+        ImageFontPreRenderedText,
         ImageFontText::default()
             .text("Hello, world!")
             .font(font_handle.clone()),
