@@ -47,14 +47,26 @@ impl Plugin for AtlasSpritesPlugin {
 #[setters(into)]
 #[require(ImageFontText, Visibility)]
 pub struct ImageFontSpriteText {
+    /// The alignment point of the text relative to its position. For example,
+    /// `Anchor::TopLeft` aligns the text's top-left corner to its position.
     pub anchor: Anchor,
+
+    /// The color applied to the rendered text. This color affects all glyphs
+    /// equally, allowing you to tint the text uniformly.
     pub color: Color,
 }
 
+/// Debugging data for visualizing an `ImageFontSpriteText` in a scene, enabled
+/// by the `gizmos` feature.
 #[cfg(feature = "gizmos")]
 #[derive(Debug, Clone, Default, Component)]
 pub struct ImageFontGizmoData {
+    /// The width of the gizmo, representing the rendered font's bounding box
+    /// or visualized area in the scene.
     width: u32,
+
+    /// The height of the gizmo, representing the rendered font's bounding box
+    /// or visualized area in the scene.
     height: u32,
 }
 
@@ -175,6 +187,21 @@ pub fn set_up_sprites(
     }
 }
 
+/// Renders gizmos for debugging `ImageFontText` and its associated glyphs in
+/// the scene.
+///
+/// This function draws 2D rectangles and crosshairs to visualize the bounding
+/// boxes and positions of rendered glyphs, aiding in debugging and alignment.
+///
+/// ### Gizmo Details
+/// - Each child glyph is visualized as a purple rectangle using its dimensions
+///   and position.
+/// - The `ImageFontText` position is marked with a red cross for easier
+///   identification.
+///
+/// ### Notes
+/// This function is enabled only when the `gizmos` feature is active and
+/// leverages the Bevy gizmo system for runtime visualization.
 #[allow(
     clippy::cast_possible_truncation,
     clippy::cast_precision_loss,

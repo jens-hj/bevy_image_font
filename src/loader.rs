@@ -13,7 +13,7 @@ use thiserror::Error;
 use crate::ImageFont;
 
 /// Human-readable way to specify where the characters in an image font are.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ImageFontLayout {
     /// Interprets the string as a "grid" and slices up the input image
     /// accordingly. Leading and trailing newlines are stripped, but spaces
@@ -56,7 +56,13 @@ pub enum ImageFontLayout {
     /// ron::from_str::<ImageFontLayout>(s).unwrap();
     /// ```
     ManualMonospace {
+        /// The size of each character, specified as a uniform width and height
+        /// in pixels. All characters are assumed to have the same dimensions.
         size: UVec2,
+
+        /// A mapping from characters to their top-left positions within the
+        /// font image. Each position is given in pixel coordinates relative
+        /// to the top-left corner of the image.
         coords: HashMap<char, UVec2>,
     },
 
@@ -138,10 +144,17 @@ impl ImageFontLayout {
 /// information on how to write the syntax, or [the example font's RON asset].
 ///
 /// [the example font's RON asset](https://github.com/ilyvion/bevy_image_font/blob/main/assets/example_font.image_font.ron)
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 // TODO: Rename to ImageFontDescriptor
 pub struct ImageFontSettings {
+    /// The path to the image file containing the font glyphs, relative to the
+    /// RON file. This should be a valid path to a texture file that can be
+    /// loaded by the asset system.
     pub image: PathBuf,
+
+    /// The layout description of the font, specifying how characters map to
+    /// regions within the image. This can use any of the variants provided
+    /// by [`ImageFontLayout`], allowing flexible configuration.
     pub layout: ImageFontLayout,
 }
 
@@ -153,21 +166,37 @@ pub struct ImageFontLoader;
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum ImageFontLoadError {
+    /// Parsing the on-disk representation of the font failed. This typically
+    /// indicates a syntax or formatting error in the RON file.
     #[error("couldn't parse on-disk representation: {0}")]
     ParseFailure(#[from] ron::error::SpannedError),
+
+    /// An I/O error occurred while loading the image font. This might happen
+    /// if the file cannot be accessed, is missing, or is corrupted.
     #[error("i/o error when loading image font: {0}")]
     Io(#[from] std::io::Error),
+
+    /// Failed to load an asset directly. This is usually caused by an error
+    /// in the asset pipeline or a missing dependency.
     #[error("failed to load asset: {0}")]
     LoadDirect(#[from] LoadDirectError),
+
+    /// The path provided for the font's image was not loaded as an image. This
+    /// may occur if the file is in an unsupported format or if the path is
+    /// incorrect.
     #[error("path at {0} wasn't loaded as an image")]
     NotAnImage(PathBuf),
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+/// Configuration settings for the `ImageFontLoader`.
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct ImageFontLoaderSettings {
-    /// The [`ImageSampler`] to use during font image rendering. The default is
-    /// `nearest`, which scales an image without blurring, keeping the text
-    /// crisp and pixellated.
+    /// The [`ImageSampler`] to use during font image rendering. Determines
+    /// how the font's texture is sampled when scaling or transforming it.
+    ///
+    /// The default is `nearest`, which scales the image without blurring,
+    /// preserving a crisp, pixelated appearance. This is usually ideal for
+    /// pixel-art fonts.
     pub image_sampler: ImageSampler,
 }
 

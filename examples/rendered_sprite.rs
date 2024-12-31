@@ -1,5 +1,6 @@
-/// Demonstrates rendering image font text at both its 'native' height and a
-/// scaled-up height.
+//! Demonstrates rendering image font text at both its 'native' height and a
+//! scaled-up height.
+
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};

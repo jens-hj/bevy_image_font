@@ -254,18 +254,37 @@ fn render_text_to_image(
     Ok(bevy_image)
 }
 
-/// Errors that can show up during rendering.
+/// Errors that can occur during the rendering of an `ImageFont`.
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum ImageFontRenderError {
+    /// The image could not be converted to a `DynamicImage`. This typically
+    /// indicates an issue with the underlying image data or its format.
     #[error("failed to convert image to DynamicImage: {0}")]
     ImageConversion(String),
+
+    /// The `ImageFont` asset required for rendering was not loaded. Ensure
+    /// that the font asset is correctly loaded into the Bevy app. This should
+    /// happend automatically when using the `AssetLoader` to load the font
+    /// asset.
     #[error("ImageFont asset not loaded")]
     MissingImageFontAsset,
+
+    /// The texture asset associated with the `ImageFont` was not loaded. This
+    /// could indicate an issue with the asset pipeline or a missing dependency.
+    /// This should happend automatically when using the `AssetLoader` to
+    /// load the font asset.
     #[error("Font texture asset not loaded")]
     MissingTextureAsset,
+
+    /// An unspecified internal error occurred during rendering. This may
+    /// indicate a bug or unexpected state in the rendering system.
     #[error("internal error")]
     UnknownError,
+
+    /// Failed to copy a character from the source font image texture to the
+    /// target rendered text sprite image texture. This error typically occurs
+    /// when there is an issue with the image data or the copying process.
     #[error("failed to copy from atlas")]
     CopyFailure(#[from] ImageError),
 }

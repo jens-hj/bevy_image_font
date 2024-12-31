@@ -23,7 +23,39 @@ pub mod atlas_sprites;
 #[cfg(feature = "atlas_sprites")]
 pub use atlas_sprites::*;
 
-#[derive(Default)]
+/// A Bevy plugin for rendering image-based fonts.
+///
+/// This plugin enables support for fonts stored as single images (e.g., PNG),
+/// where each glyph is represented by a section of the image. It handles:
+///
+/// - Loading `ImageFont` assets, which describe the glyph layout.
+/// - Registering the `ImageFont` and `ImageFontText` types for use in your app.
+/// - Marking updated fonts as dirty, ensuring proper re-rendering.
+///
+/// ### Features
+/// The plugin conditionally includes additional functionality based on enabled
+/// features:
+/// - `rendered`: Enables support for rendering image fonts.
+/// - `atlas_sprites`: Enables support for more advanced atlas-based sprite
+///   functionality.
+///
+/// ### Usage
+/// To use this plugin, add it to your Bevy app:
+/// ```rust,no_run
+/// use bevy::prelude::*;
+/// use bevy_image_font::ImageFontPlugin;
+///
+/// App::new()
+///     .add_plugins(DefaultPlugins)
+///     .add_plugins(ImageFontPlugin)
+///     .run();
+/// ```
+///
+/// Ensure that `ImageFont` assets are properly loaded and configured using the
+/// asset system, and consider the relevant examples in the documentation for
+/// advanced use cases.
+
+#[derive(Debug, Default)]
 pub struct ImageFontPlugin;
 
 impl Plugin for ImageFontPlugin {
@@ -35,10 +67,10 @@ impl Plugin for ImageFontPlugin {
             .add_systems(PostUpdate, mark_changed_fonts_as_dirty);
 
         #[cfg(feature = "rendered")]
-        app.add_plugins(rendered::RenderedPlugin);
+        app.add_plugins(RenderedPlugin);
 
         #[cfg(feature = "atlas_sprites")]
-        app.add_plugins(atlas_sprites::AtlasSpritesPlugin);
+        app.add_plugins(AtlasSpritesPlugin);
     }
 }
 
@@ -50,7 +82,12 @@ pub struct ImageFontSet;
 #[derive(Debug, Clone, Reflect, Asset)]
 #[reflect(opaque)]
 pub struct ImageFont {
+    /// The layout of the texture atlas, describing the positioning and sizes
+    /// of glyphs within the image font. This layout is used to map character
+    /// regions within the texture.
     pub atlas_layout: Handle<TextureAtlasLayout>,
+    /// The image that contains the font glyphs. Each glyph is a section of
+    /// this texture, defined by the `atlas_layout` and `atlas_character_map`.
     pub texture: Handle<Image>,
     /// The glyph used to render `c` is contained in the part of the image
     /// pointed to by `atlas.textures[atlas_character_map[c]]`.
@@ -102,7 +139,11 @@ impl ImageFont {
 #[derive(Debug, Clone, Reflect, Default, Component, Setters)]
 #[setters(into)]
 pub struct ImageFontText {
+    /// The string of text to be rendered. Each character in the string is
+    /// mapped to a corresponding glyph in the associated [`ImageFont`].
     pub text: String,
+    /// The handle to the [`ImageFont`] used to render this text. The font's
+    /// texture and atlas mapping determine how characters are displayed.
     pub font: Handle<ImageFont>,
     /// If set, overrides the height the font is rendered at. This should be an
     /// integer multiple of the 'native' height if you want pixel accuracy,

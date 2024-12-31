@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `atlased_sprite.rs` example: Demonstrates rendering text with the `atlas_sprites` feature.
 - Added `ImageFontLoaderSettings` for specifying a custom `ImageSampler` to be used by the font asset loader.
 - Enabled documentation for all features when building on `docs.rs` as well as enhanced documentation using the `doc_cfg` and `doc_auto_cfg` features.
+- Expanded inline documentation for:
+  - `ImageFont` and its fields (`atlas_layout`, `texture`, `atlas_character_map`).
+  - `ImageFontLayout` variants, with detailed descriptions of layout methods.
+  - `ImageFontSettings`, including details on `image` paths and `layout` mappings.
+  - Error enums (`ImageFontLoadError` and `ImageFontRenderError`) with comprehensive explanations of possible errors.
+- Added detailed comments to the `AtlasSpritesPlugin` and `ImageFontSpriteText` structs to describe their functionality.
+- Added more Rust lint configuration to `Cargo.toml`.
 
 ### Changed
 
@@ -27,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed examples for clarity with the new `atlas_sprites` feature:
   - `sprite.rs` → `rendered_sprite.rs`
   - `bevy_ui.rs` → `rendered_ui.rs`
+- Improved documentation for `ImageFontPlugin` to include usage examples and feature descriptions.
 
 ### Removed
 
