@@ -1,4 +1,4 @@
-# bevy_image_font
+# `bevy_image_font`
 
 [![Crates.io](https://img.shields.io/crates/v/bevy_image_font)](https://crates.io/crates/bevy_image_font)
 [![Crates.io](https://img.shields.io/crates/l/bevy_image_font)](https://crates.io/crates/bevy_image_font)

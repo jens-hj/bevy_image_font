@@ -47,6 +47,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
             anchor: Anchor::CenterLeft,
             ..default()
         },
+        #[allow(clippy::cast_precision_loss)]
         Transform::from_translation(Vec3::new(
             -((TEXT.chars().count() * FONT_WIDTH / 2) as f32),
             40.,

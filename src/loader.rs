@@ -77,6 +77,7 @@ pub enum ImageFontLayout {
 
 impl ImageFontLayout {
     /// Given the image size, returns a map from each codepoint to its location.
+    #[allow(clippy::cast_possible_truncation)]
     fn into_char_map(self, size: UVec2) -> HashMap<char, URect> {
         match self {
             ImageFontLayout::Automatic(str) => {
@@ -132,8 +133,8 @@ impl ImageFontLayout {
     }
 }
 
-/// On-disk representation of a ImageFont, optimized to make it easy for humans
-/// to write these. See the docs for [`ImageFontLayout`]'s variants for
+/// On-disk representation of an [`ImageFont`], optimized to make it easy for
+/// humans to write these. See the docs for [`ImageFontLayout`]'s variants for
 /// information on how to write the syntax, or [the example font's RON asset].
 ///
 /// [the example font's RON asset](https://github.com/ilyvion/bevy_image_font/blob/main/assets/example_font.image_font.ron)

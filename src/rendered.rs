@@ -197,6 +197,11 @@ fn render_text_to_image(
         x += width;
     }
 
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_precision_loss,
+        clippy::cast_sign_loss
+    )]
     if let Some(font_height) = image_font_text.font_height {
         let width = output_image.width() as f32 * font_height / output_image.height() as f32;
         output_image = imageops::resize(

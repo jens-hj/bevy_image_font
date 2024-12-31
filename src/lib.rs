@@ -67,7 +67,7 @@ impl ImageFont {
     ) -> (HashMap<char, usize>, TextureAtlasLayout) {
         let mut atlas_character_map = HashMap::new();
         let mut atlas_layout = TextureAtlasLayout::new_empty(size);
-        for (&c, &rect) in char_rect_map.iter() {
+        for (&c, &rect) in char_rect_map {
             atlas_character_map.insert(c, atlas_layout.add_texture(rect));
         }
 
@@ -86,6 +86,7 @@ impl ImageFont {
         }
     }
 
+    #[allow(dead_code)]
     fn filter_string(&self, s: impl AsRef<str>) -> String {
         s.as_ref()
             .chars()
