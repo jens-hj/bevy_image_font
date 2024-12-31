@@ -192,12 +192,12 @@ fn render_text_to_image(
 
     // as wide as the sum of all characters, as tall as the tallest one
     let height = text
-        .chars()
+        .filtered_chars()
         .map(|c| layout.textures[image_font.atlas_character_map[&c]].height())
         .reduce(u32::max)
         .unwrap();
     let width = text
-        .chars()
+        .filtered_chars()
         .map(|c| layout.textures[image_font.atlas_character_map[&c]].width())
         .reduce(|a, b| a + b)
         .unwrap();
@@ -211,7 +211,7 @@ fn render_text_to_image(
     .ok_or(ImageFontRenderError::UnknownError)?;
 
     let mut x = 0;
-    for c in text.chars() {
+    for c in text.filtered_chars() {
         let rect = layout.textures[image_font.atlas_character_map[&c]];
         let width = rect.width();
         let height = rect.height();

@@ -133,12 +133,12 @@ pub fn set_up_sprites(
         let text = image_font.filter_string(&image_font_text.text);
 
         let max_height = text
-            .chars()
+            .filtered_chars()
             .map(|c| layout.textures[image_font.atlas_character_map[&c]].height())
             .reduce(u32::max)
             .unwrap_or(1);
         let total_width = text
-            .chars()
+            .filtered_chars()
             .map(|c| layout.textures[image_font.atlas_character_map[&c]].width())
             .reduce(|a, b| a + b)
             .unwrap_or(0);
@@ -161,7 +161,7 @@ pub fn set_up_sprites(
             .sprites
             .iter()
             .copied()
-            .zip(text.chars())
+            .zip(text.filtered_chars())
         {
             let (mut sprite, mut transform) = child_query.get_mut(sprite_entity).unwrap();
             sprite.texture_atlas.as_mut().unwrap().index = image_font.atlas_character_map[&c];
@@ -193,7 +193,7 @@ pub fn set_up_sprites(
         }
 
         // Adjust sprite count to match character count
-        let char_count = text.chars().count();
+        let char_count = text.filtered_chars().count();
         let sprite_count = image_font_text_data.sprites.len();
 
         #[allow(clippy::comparison_chain)]
@@ -214,7 +214,7 @@ pub fn set_up_sprites(
 
             let mut entity_commands = commands.entity(entity);
             entity_commands.with_children(|parent| {
-                for c in text.chars().skip(sprite_count) {
+                for c in text.filtered_chars().skip(sprite_count) {
                     let rect = layout.textures[image_font.atlas_character_map[&c]];
                     let (width, _height) =
                         image_font_text

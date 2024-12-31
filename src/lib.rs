@@ -11,6 +11,9 @@ use bevy::{
 use bevy_image::{Image, ImageSampler};
 use derive_setters::Setters;
 
+#[cfg(any(feature = "rendered", feature = "atlas_sprites"))]
+mod filtered_string;
+
 pub mod loader;
 
 #[cfg(feature = "rendered")]
@@ -127,11 +130,8 @@ impl ImageFont {
     }
 
     #[cfg(any(feature = "rendered", feature = "atlas_sprites"))]
-    fn filter_string(&self, s: impl AsRef<str>) -> String {
-        s.as_ref()
-            .chars()
-            .filter(|c| self.atlas_character_map.contains_key(c))
-            .collect()
+    fn filter_string<S: AsRef<str>>(&self, s: S) -> filtered_string::FilteredString<'_, S> {
+        filtered_string::FilteredString::new(s, &self.atlas_character_map)
     }
 }
 
