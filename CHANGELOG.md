@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added support for optional gizmo rendering via the `gizmos` feature.
   - `atlased_sprite.rs` example: Demonstrates rendering text with the `atlas_sprites` feature.
 - Added `ImageFontLoaderSettings` for specifying a custom `ImageSampler` to be used by the font asset loader.
+- Enabled documentation for all features when building on `docs.rs` as well as enhanced documentation using the `doc_cfg` and `doc_auto_cfg` features.
 
 ### Changed
 

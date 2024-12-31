@@ -64,3 +64,9 @@ required-features = ["atlas_sprites"]
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 needless_pass_by_value = "allow"
+
+[package.metadata.docs.rs]
+# document all features
+all-features = true
+# defines the configuration attribute `docsrs`
+rustdoc-args = ["--cfg", "docsrs"]

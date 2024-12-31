@@ -1,4 +1,8 @@
 #![doc = include_str!("../README.md")]
+//
+// only enables the `doc_cfg` feature when
+// the `docsrs` configuration attribute is defined
+#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 
 use bevy::{
     prelude::*,
