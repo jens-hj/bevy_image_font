@@ -34,15 +34,13 @@
 
 ```toml
 [dependencies]
-bevy = "0.14"
+bevy = "0.15"
 bevy_image_font = "0.6"
 ```
 
 ### How to use
 
-If your text sprites aren't pixel-accurate, note that Bevy anchors sprites at the center by default. This causes sprites with odd pixel dimensions to land on non-integer positions, resulting in blurry rendering. To fix this, use a non-`Center` anchor like `Anchor::TopLeft` or adjust the translation of centered sprites. See [the sprite example] for more details.
-
-Just take any entity with a `Handle<Image>` or `UiImage` component, such as something created with a `SpriteBundle` or `ImageBundle`, and add a `ImageFontText` component to it.
+Insert an `ImageFontText` component on a component with either a `Sprite` component or an `ImageNode` component to have it operate on said `Sprite` or `ImageNode` respectively.
 
 See [the bevy_ui example] for sample usage using the `bevy_asset_loader` crate to construct handles to the texture layout and image, or [the sprite example] if you want to use pixel fonts 'in the world' (such as for flying damage text).
 
@@ -53,12 +51,15 @@ If you're not using `bevy_ui`, you can disable the `bevy_ui` feature (enabled by
 
 This crate uses the `image` crate to load images, but only enables PNG support by default. If you need some other format, add your own dependency on (the same version of) `image` and enable the relevant features.
 
+If your text sprites aren't pixel-accurate, note that Bevy anchors sprites at the center by default. This causes sprites with odd pixel dimensions to land on non-integer positions, resulting in blurry rendering. To fix this, use a non-`Center` anchor like `Anchor::TopLeft` or adjust the translation of centered sprites. See [the sprite example] for more details.
+
 ## Bevy Version Support
 
 I intend to track the latest release version of Bevy. PRs supporting this are welcome!
 
 | bevy | bevy_image_font |
 | ---- | --------------- |
+| 0.15 | 0.6             |
 | 0.14 | 0.5             |
 
 ## Contributing
