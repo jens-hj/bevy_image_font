@@ -141,29 +141,28 @@ jobs:
             - name: Run cargo clippy
               run: cargo clippy --all-features
 
-    # TODO: Add later
-    # coverage:
-    #     name: Report coverage
-    #     runs-on: ubuntu-latest
-    #     needs: test
-    #     if: github.event_name != 'pull_request'
-    #     container:
-    #         image: xd009642/tarpaulin:develop-nightly
-    #         options: --security-opt seccomp=unconfined
+    coverage:
+        name: Report coverage
+        runs-on: ubuntu-latest
+        needs: test
+        if: github.event_name != 'pull_request'
+        container:
+            image: xd009642/tarpaulin:develop-nightly
+            options: --security-opt seccomp=unconfined
 
-    #     steps:
-    #         - name: Checkout repository
-    #           uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-    #         - name: Generate code coverage
-    #           run: |
-    #               cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
+            - name: Generate code coverage
+              run: |
+                  cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
 
-    #         - name: Upload coverage
-    #           uses: codecov/codecov-action@v2
-    #           with:
-    #               token: ${{ secrets.CODECOV_TOKEN }}
-    #               fail_ci_if_error: true
+            - name: Upload coverage reports to Codecov
+              uses: codecov/codecov-action@v5
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  fail_ci_if_error: true
 
     docs:
         name: Documentation
