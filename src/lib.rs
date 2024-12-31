@@ -126,7 +126,7 @@ impl ImageFont {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(any(feature = "rendered", feature = "atlas_sprites"))]
     fn filter_string(&self, s: impl AsRef<str>) -> String {
         s.as_ref()
             .chars()

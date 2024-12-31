@@ -143,4 +143,4 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 
-[^cfg]: Ignore the `#[cfg(feature = "rendered")]` lines in the example; they're only there to satisfy the compiler when running it as a doc test for this README.
+[^cfg]: Ignore the `#[cfg(feature = "...")]` lines in the example; they're only there to satisfy the compiler when running it as a doc test for this README.
