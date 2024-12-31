@@ -109,23 +109,28 @@ pub struct ImageFontText {
 
 /// Marks any text where the underlying [`ImageFont`] asset has changed as
 /// dirty, which will cause it to be rerendered.
+#[allow(private_interfaces)]
 pub fn mark_changed_fonts_as_dirty(
     mut events: EventReader<AssetEvent<ImageFont>>,
     mut query: Query<&mut ImageFontText>,
+    mut changed_fonts: Local<CachedHashSet>,
 ) {
-    let changed_fonts: HashSet<_> = events
-        .read()
-        .filter_map(|event| match event {
-            AssetEvent::Modified { id } | AssetEvent::LoadedWithDependencies { id } => {
-                info!("Image font {id} finished loading; marking as dirty");
-                Some(id)
-            }
-            _ => None,
-        })
-        .collect();
+    changed_fonts.extend(events.read().copied().filter_map(|event| match event {
+        AssetEvent::Modified { id } | AssetEvent::LoadedWithDependencies { id } => {
+            info!("Image font {id} finished loading; marking as dirty");
+            Some(id)
+        }
+        _ => None,
+    }));
+
     for mut image_font_text in &mut query {
         if changed_fonts.contains(&image_font_text.font.id()) {
             image_font_text.set_changed();
         }
     }
+
+    changed_fonts.clear();
 }
+
+#[derive(Default, Deref, DerefMut)]
+struct CachedHashSet(HashSet<AssetId<ImageFont>>);
