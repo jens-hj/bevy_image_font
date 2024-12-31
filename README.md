@@ -1,36 +1,40 @@
+# bevy_image_font
+
 [![Crates.io](https://img.shields.io/crates/v/bevy_image_font)](https://crates.io/crates/bevy_image_font)
 [![Crates.io](https://img.shields.io/crates/l/bevy_image_font)](https://crates.io/crates/bevy_image_font)
 [![Crates.io](https://img.shields.io/crates/d/bevy_image_font)](https://crates.io/crates/bevy_image_font)
-[![Docs.io](https://docs.rs/bevy_image_font/badge.svg)](https://docs.rs/bevy_image_font)
+[![Docs.rs](https://docs.rs/bevy_image_font/badge.svg)](https://docs.rs/bevy_image_font)
 [![Docs main](https://img.shields.io/static/v1?label=docs&message=main&color=5479ab)](https://ilyvion.github.io/bevy_image_font/)
-[![Rust](https://github.com/ilyvion/bevy_image_font/actions/workflows/CI.yml/badge.svg)](https://github.com/ilyvion/bevy_image_font/actions/workflows/CI.yml)
+[![Build Status](https://github.com/ilyvion/bevy_image_font/actions/workflows/CI.yml/badge.svg)](https://github.com/ilyvion/bevy_image_font/actions/workflows/CI.yml)
 
-`bevy_image_font` allows rendering fonts that are stored as a single image (typically PNG), with each letter at a given location. This is common in game development, especially for pixel art fonts, since it allows the use of colors and creating a font can be done using any image editor as opposed to specialized software. These are also sometimes known as 'pixel fonts', but I choose the name 'image font' to be more precise (since bitmap fonts stored in OTB could also be called 'pixel fonts').
+`bevy_image_font` enables rendering fonts stored as single images (e.g., PNG), with each letter at a predefined position. This crate focuses specifically on image-based fonts, often called "pixel fonts," used in game development. The term "image font" was chosen for precision, as bitmap fonts in formats like OTB might also be referred to as "pixel fonts."
 
 ## Features
 
-**Supported**
+### Supported
 
-- Unicode (anything that fits in a single codepoint)
-- Specifying the coordinates with a string containing the letters in proper order (see the example asset)
-- Manually specifying the rects (including non-uniform sizes)
+- Unicode (single codepoints)
+- Defining character coordinates via strings (see example asset)
+- Manual specification of rectangles (including non-uniform sizes)
 
-**Future work**
+### Planned Enhancements
 
-- Padding and offsets for automatic texture layout
-- Newlines embedding in strings
+- Padding and offsets for texture layouts
+- Inline newlines in strings
 
-**Out of scope**
+### Out of Scope
 
-- Rendering from 'actual' bitmap fonts
+- Rendering from traditional bitmap fonts
 - Automatic line wrapping
 
-### Caveats
+### Known Limitations
 
-- You need to have a portion of the texture that's just blank and 'map' the space character to it.
-- Newlines are not currently supported.
+- Space characters require a blank texture region.
+- Newlines are currently unsupported.
 
-## Usage
+## Getting Started
+
+Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -38,39 +42,80 @@ bevy = "0.15"
 bevy_image_font = "0.6"
 ```
 
-### How to use
+### Usage
 
-Insert an `ImageFontText` component on a component with either a `Sprite` component or an `ImageNode` component to have it operate on said `Sprite` or `ImageNode` respectively.
+Add an `ImageFontText` component to an entity with either a `Sprite` or `ImageNode` component. This will render the text onto the associated texture.
 
-See [the bevy_ui example] for sample usage using the `bevy_asset_loader` crate to construct handles to the texture layout and image, or [the sprite example] if you want to use pixel fonts 'in the world' (such as for flying damage text).
+#### Minimal Example
 
-[the sprite example]: https://github.com/ilyvion/bevy_image_font/blob/main/examples/sprite.rs
-[the bevy_ui example]: https://github.com/ilyvion/bevy_image_font/blob/main/examples/bevy_ui.rs
+Here's a minimal example of using `bevy_image_font` to render text:
 
-If you're not using `bevy_ui`, you can disable the `bevy_ui` feature (enabled by default) to avoid taking a dependency on that.
+```rust,no_run
+use bevy::prelude::*;
+use bevy_image_font::{ImageFontPlugin, ImageFontText, ImageFontSpriteText};
 
-This crate uses the `image` crate to load images, but only enables PNG support by default. If you need some other format, add your own dependency on (the same version of) `image` and enable the relevant features.
+fn main() {
+    App::new()
+        .add_plugins((DefaultPlugins, ImageFontPlugin))
+        .add_systems(Startup, setup)
+        .run();
+}
 
-If your text sprites aren't pixel-accurate, note that Bevy anchors sprites at the center by default. This causes sprites with odd pixel dimensions to land on non-integer positions, resulting in blurry rendering. To fix this, use a non-`Center` anchor like `Anchor::TopLeft` or adjust the translation of centered sprites. See [the sprite example] for more details.
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let font_handle = asset_server.load("path/to/font_layout.image_font.ron");
 
-## Bevy Version Support
+    commands.spawn((
+        ImageFontSpriteText,
+        ImageFontText::default()
+            .text("Hello, world!")
+            .font(font_handle.clone()),
+    ));
+}
+```
 
-I intend to track the latest release version of Bevy. PRs supporting this are welcome!
+This example sets up a simple Bevy application with an `ImageFontText` component, rendering "Hello, world!" using a specified font image and layout.
 
-| bevy | bevy_image_font |
-| ---- | --------------- |
-| 0.15 | 0.6             |
-| 0.14 | 0.5             |
+See examples for more details:
+
+- [Sprite example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/sprite.rs): Using pixel fonts for in-world text like damage numbers.
+- [Bevy UI example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/bevy_ui.rs): Using `bevy_asset_loader` for texture and font handling.
+
+#### Note on Pixel Accuracy
+
+Bevy anchors sprites at the center by default, which may cause odd-dimensioned sprites to appear blurry. To avoid this, use non-`Center` anchors like `Anchor::TopLeft` or adjust sprite translations. Refer to the [sprite example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/sprite.rs) for details.
+
+### Optional Features
+
+- Disable the default `bevy_ui` feature if unused to minimize dependencies.
+- The `image` crate is already a dependency of `bevy_image_font`. If your project depends on this crate and you need support for non-PNG formats, add your own dependency on the same version of `image` and enable the relevant features.
+
+## Bevy Version Compatibility
+
+| Bevy Version | Crate Version |
+| ------------ | ------------- |
+| 0.15         | 0.6           |
+| 0.14         | 0.5           |
+
+## Changelog
+
+For detailed changes across versions, see the [Changelog](CHANGELOG.md). Each GitHub Release which is created each time the crate is published also includes the relevant section of the changelog in its release notes for easy reference.
 
 ## Contributing
 
-Please run `git config --local core.hooksPath .githooks` after you have cloned the repo to make sure your local Git repo is configured to run our Git hooks, which takes care of things like not allowing you to commit code that doesn't follow our coding standards. These hooks require the following additional tools:
+1. Configure Git hooks after cloning:
+   ```bash
+   git config --local core.hooksPath .githooks
+   ```
+2. Install required tools:
+   ```bash
+   cargo install cargo-hack --locked
+   ```
 
-- `cargo-hack`: `cargo install cargo-hack --locked`
+PRs to support the latest Bevy releases are welcome!
 
 ## Credits
 
-The sample font is by [gnsh](https://opengameart.org/content/bitmap-font-0).
+Sample font by [gnsh](https://opengameart.org/content/bitmap-font-0).
 
 ## License
 
