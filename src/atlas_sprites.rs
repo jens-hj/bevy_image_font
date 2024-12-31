@@ -114,6 +114,7 @@ pub fn set_up_sprites(
             maybe_new_image_font_text_data.as_mut().unwrap()
         };
 
+        // Retrieve the font and layout
         let Some(image_font) = image_fonts.get(&image_font_text.font) else {
             error!(
                 "Error when setting up image font text {:?}: ImageFont asset not loaded",
@@ -186,29 +187,30 @@ pub fn set_up_sprites(
             ))
             .with_scale(scale);
 
+            debug!("Updated sprite for char '{}': {:?}", c, transform);
+
             x_pos += width;
         }
 
-        // If it isn't an exact match, we have two potential cases that require addition
-        // work: too many sprites or too few sprites. With too many, we remove
-        // them, and with too few, we add them.
+        // Adjust sprite count to match character count
         let char_count = text.chars().count();
         let sprite_count = image_font_text_data.sprites.len();
 
         #[allow(clippy::comparison_chain)]
-        if sprite_count == char_count {
-            // Exact match, nothing to do
-            trace!("Exact match, nothing to do");
-        } else if sprite_count > char_count {
-            // Too many sprites; remove excess
-            debug!("Removing excess sprites; have {sprite_count}, only need {char_count}");
+        if sprite_count > char_count {
+            debug!(
+                "Removing excess sprites; have {}, only need {}",
+                sprite_count, char_count
+            );
+
             for e in image_font_text_data.sprites.drain(char_count..) {
-                trace!("Despawning {e}");
                 commands.entity(e).despawn();
             }
-        } else {
-            // Too few sprites; add missing
-            debug!("Adding missing sprites; have {sprite_count}, need {char_count}; e={entity}");
+        } else if sprite_count < char_count {
+            debug!(
+                "Adding missing sprites; have {}, need {}",
+                sprite_count, char_count
+            );
 
             let mut entity_commands = commands.entity(entity);
             entity_commands.with_children(|parent| {
@@ -233,6 +235,11 @@ pub fn set_up_sprites(
                     ))
                     .with_scale(scale);
 
+                    debug!(
+                        "Adding sprite for char '{}': position = {:?}, transform = {:?}",
+                        c, x_pos, transform
+                    );
+
                     x_pos += width;
 
                     let child = parent.spawn((
@@ -247,6 +254,7 @@ pub fn set_up_sprites(
                         },
                         transform,
                     ));
+
                     image_font_text_data.sprites.push(child.id());
 
                     #[cfg(feature = "gizmos")]
@@ -262,7 +270,9 @@ pub fn set_up_sprites(
             });
         }
 
+        // Insert new font text data if it was created
         if let Some(new_image_font_text_data) = maybe_new_image_font_text_data {
+            debug!("Inserted new ImageFontTextData for entity {:?}", entity);
             commands.entity(entity).insert(new_image_font_text_data);
         }
     }
