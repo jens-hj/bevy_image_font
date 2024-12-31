@@ -128,21 +128,12 @@ pub fn render_sprites(
     mut images: ResMut<Assets<Image>>,
     layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
-    for (image_font_text, mut image_handle) in &mut query {
-        debug!("Rendering [{}]", image_font_text.text);
-        // don't need to clear the old image since it'll be no longer live
-        match render_text(image_font_text, &image_fonts, &images, &layouts) {
-            Ok(image) => {
-                image_handle.image = images.add(image);
-            }
-            Err(e) => {
-                error!(
-                    "Error when rendering image font text {:?}: {}",
-                    image_font_text, e
-                );
-            }
-        }
-    }
+    render_text_to_image(
+        query.iter_mut().map(|(a, b)| (a, b.into_inner())),
+        &image_fonts,
+        &mut images,
+        &layouts,
+    );
 }
 
 #[cfg(feature = "ui")]
@@ -154,12 +145,50 @@ pub fn render_ui_images(
     mut images: ResMut<Assets<Image>>,
     layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
-    for (image_font_text, mut ui_image) in &mut query {
+    render_text_to_image(
+        query.iter_mut().map(|(a, b)| (a, b.into_inner())),
+        &image_fonts,
+        &mut images,
+        &layouts,
+    );
+}
+
+/// Renders text into images and assigns the resulting image handles to their
+/// holders.
+///
+/// This function is designed to work with any type that implements
+/// [`ImageHandleHolder`], allowing it to be used with multiple components, such
+/// as sprites and UI elements.
+///
+/// # Parameters
+/// - `font_text_to_image_iter`: An iterator over pairs of [`ImageFontText`] and
+///   mutable references to objects implementing [`ImageHandleHolder`]. Each
+///   item in the iterator represents a text-to-image mapping to be rendered.
+/// - `image_fonts`: A reference to the font assets used for rendering.
+/// - `images`: A mutable reference to the collection of image assets. This is
+///   used to store the newly rendered images.
+/// - `layouts`: A reference to the collection of texture atlas assets.
+///
+/// The function iterates over the provided items, renders the text for each
+/// [`ImageFontText`], and updates the corresponding [`ImageHandleHolder`] with
+/// the handle to the newly created image.
+///
+/// # Errors
+/// If text rendering fails for an item, an error message is logged, and the
+/// corresponding holder is not updated.
+fn render_text_to_image<'a>(
+    font_text_to_image_iter: impl Iterator<
+        Item = (&'a ImageFontText, &'a mut (impl ImageHandleHolder + 'a)),
+    >,
+    image_fonts: &Assets<ImageFont>,
+    images: &mut Assets<Image>,
+    layouts: &Assets<TextureAtlasLayout>,
+) {
+    for (image_font_text, image_handle_holder) in font_text_to_image_iter {
         debug!("Rendering [{}]", image_font_text.text);
-        // don't need to clear the old image since it'll be no longer live
-        match render_text(image_font_text, &image_fonts, &images, &layouts) {
+        match render_text(image_font_text, image_fonts, images, layouts) {
             Ok(image) => {
-                ui_image.image = images.add(image);
+                image_handle_holder.set_image_handle(images.add(image));
             }
             Err(e) => {
                 error!(
@@ -303,5 +332,33 @@ pub fn mark_changed_fonts_as_dirty(
         if changed_fonts.contains(&image_font_text.font.id()) {
             image_font_text.set_changed();
         }
+    }
+}
+
+/// A helper trait that represents types that can hold an image handle.
+///
+/// This is used to abstract over different components (e.g., [`Sprite`] and
+/// [`ImageNode`]) that need to store a handle to an image rendered from text.
+trait ImageHandleHolder {
+    /// Sets the handle for the image that this holder represents.
+    ///
+    /// This method is called after rendering text into an image
+    /// to update the holder with the new image handle.
+    ///
+    /// # Parameters
+    /// - `image`: The handle to the newly rendered image.
+    fn set_image_handle(&mut self, image: Handle<Image>);
+}
+
+impl ImageHandleHolder for Sprite {
+    fn set_image_handle(&mut self, image: Handle<Image>) {
+        self.image = image;
+    }
+}
+
+#[cfg(feature = "ui")]
+impl ImageHandleHolder for ImageNode {
+    fn set_image_handle(&mut self, image: Handle<Image>) {
+        self.image = image;
     }
 }
