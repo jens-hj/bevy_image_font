@@ -56,6 +56,12 @@ pub struct ImageFontSpriteText {
     pub color: Color,
 }
 
+#[derive(Debug, Clone, Default, Component)]
+struct ImageFontTextData {
+    /// Basically a map between character index and character sprite
+    sprites: Vec<Entity>,
+}
+
 /// Debugging data for visualizing an `ImageFontSpriteText` in a scene, enabled
 /// by the `gizmos` feature.
 #[cfg(feature = "gizmos")]
@@ -81,16 +87,32 @@ pub struct ImageFontGizmoData {
 /// system only runs when the `ImageFontText` or [`ImageFontSpriteText`]
 /// changes.
 #[allow(clippy::missing_panics_doc)] // Panics should be impossible
+#[allow(private_interfaces)]
+#[allow(clippy::too_many_lines)] // TODO: Only temporarily!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 pub fn set_up_sprites(
     mut commands: Commands,
-    mut query: Query<(Entity, &ImageFontText, &ImageFontSpriteText), Changed<ImageFontText>>,
+    mut query: Query<
+        (
+            Entity,
+            &ImageFontText,
+            &ImageFontSpriteText,
+            Option<&mut ImageFontTextData>,
+        ),
+        Or<(Changed<ImageFontText>, Changed<ImageFontSpriteText>)>,
+    >,
+    mut child_query: Query<(&mut Sprite, &mut Transform)>,
     image_fonts: Res<Assets<ImageFont>>,
     texture_atlas_layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
-    for (entity, image_font_text, image_font_sprite_text) in &mut query {
-        // Remove existing sprites
-        let mut entity_commands = commands.entity(entity);
-        entity_commands.despawn_descendants();
+    for (entity, image_font_text, image_font_sprite_text, mut image_font_text_data) in &mut query {
+        let mut maybe_new_image_font_text_data = None;
+        let image_font_text_data = if let Some(image_font_text_data) = image_font_text_data.as_mut()
+        {
+            &mut *image_font_text_data
+        } else {
+            maybe_new_image_font_text_data = Some(ImageFontTextData::default());
+            maybe_new_image_font_text_data.as_mut().unwrap()
+        };
 
         let Some(image_font) = image_fonts.get(&image_font_text.font) else {
             error!(
@@ -109,21 +131,16 @@ pub fn set_up_sprites(
 
         let text = image_font.filter_string(&image_font_text.text);
 
-        if text.is_empty() {
-            // nothing to render
-            continue;
-        }
-
         let max_height = text
             .chars()
             .map(|c| layout.textures[image_font.atlas_character_map[&c]].height())
             .reduce(u32::max)
-            .unwrap();
+            .unwrap_or(1);
         let total_width = text
             .chars()
             .map(|c| layout.textures[image_font.atlas_character_map[&c]].width())
             .reduce(|a, b| a + b)
-            .unwrap();
+            .unwrap_or(0);
 
         let scale: Vec3 = (
             Vec2::splat(
@@ -133,57 +150,121 @@ pub fn set_up_sprites(
         )
             .into();
 
-        entity_commands.with_children(|parent| {
-            let mut x = 0;
-            for c in text.chars() {
-                let rect = layout.textures[image_font.atlas_character_map[&c]];
-                let (width, _height) =
-                    image_font_text
-                        .font_height
-                        .map_or((rect.width(), rect.height()), |fh| {
-                            (
-                                (rect.width() as f32 * fh / max_height as f32) as u32,
-                                (rect.height() as f32 * fh / max_height as f32) as u32,
-                            )
-                        });
+        let anchor_vec = image_font_sprite_text.anchor.as_vec();
+        let anchor_vec_individual = -anchor_vec;
+        let anchor_vec_whole = -(anchor_vec + Vec2::new(0.5, 0.0));
 
-                let anchor_vec = image_font_sprite_text.anchor.as_vec();
-                let anchor_vec_individual = -anchor_vec;
-                let anchor_vec_whole = -(anchor_vec + Vec2::new(0.5, 0.0));
-                let transform = Transform::from_translation(Vec3::new(
-                    x as f32
-                        + total_width as f32 * anchor_vec_whole.x * scale.x
-                        + width as f32 * anchor_vec_individual.x,
-                    max_height as f32 * anchor_vec_whole.y * scale.y,
-                    0.,
-                ))
-                .with_scale(scale);
-                let _child = parent.spawn((
-                    Sprite {
-                        image: image_font.texture.clone_weak(),
-                        texture_atlas: Some(TextureAtlas {
-                            layout: image_font.atlas_layout.clone_weak(),
-                            index: image_font.atlas_character_map[&c],
-                        }),
-                        color: image_font_sprite_text.color,
-                        ..default()
-                    },
-                    transform,
-                ));
+        // First, let's set and move any existing sprites we've got
+        let mut x_pos = 0;
+        for (sprite_entity, c) in image_font_text_data
+            .sprites
+            .iter()
+            .copied()
+            .zip(text.chars())
+        {
+            let (mut sprite, mut transform) = child_query.get_mut(sprite_entity).unwrap();
+            sprite.texture_atlas.as_mut().unwrap().index = image_font.atlas_character_map[&c];
+            sprite.color = image_font_sprite_text.color;
 
-                #[cfg(feature = "gizmos")]
-                #[allow(clippy::used_underscore_binding)]
-                {
-                    let mut child = _child;
-                    child.insert(ImageFontGizmoData {
-                        width,
-                        height: _height,
+            let rect = layout.textures[image_font.atlas_character_map[&c]];
+            let (width, _height) =
+                image_font_text
+                    .font_height
+                    .map_or((rect.width(), rect.height()), |fh| {
+                        (
+                            (rect.width() as f32 * fh / max_height as f32) as u32,
+                            (rect.height() as f32 * fh / max_height as f32) as u32,
+                        )
                     });
-                }
 
-                x += width;
+            *transform = Transform::from_translation(Vec3::new(
+                x_pos as f32
+                    + total_width as f32 * anchor_vec_whole.x * scale.x
+                    + width as f32 * anchor_vec_individual.x,
+                max_height as f32 * anchor_vec_whole.y * scale.y,
+                0.,
+            ))
+            .with_scale(scale);
+
+            x_pos += width;
+        }
+
+        // If it isn't an exact match, we have two potential cases that require addition
+        // work: too many sprites or too few sprites. With too many, we remove
+        // them, and with too few, we add them.
+        let char_count = text.chars().count();
+        let sprite_count = image_font_text_data.sprites.len();
+
+        #[allow(clippy::comparison_chain)]
+        if sprite_count == char_count {
+            // Exact match, nothing to do
+            trace!("Exact match, nothing to do");
+        } else if sprite_count > char_count {
+            // Too many sprites; remove excess
+            debug!("Removing excess sprites; have {sprite_count}, only need {char_count}");
+            for e in image_font_text_data.sprites.drain(char_count..) {
+                trace!("Despawning {e}");
+                commands.entity(e).despawn();
             }
-        });
+        } else {
+            // Too few sprites; add missing
+            debug!("Adding missing sprites; have {sprite_count}, need {char_count}; e={entity}");
+
+            let mut entity_commands = commands.entity(entity);
+            entity_commands.with_children(|parent| {
+                for c in text.chars().skip(sprite_count) {
+                    let rect = layout.textures[image_font.atlas_character_map[&c]];
+                    let (width, _height) =
+                        image_font_text
+                            .font_height
+                            .map_or((rect.width(), rect.height()), |fh| {
+                                (
+                                    (rect.width() as f32 * fh / max_height as f32) as u32,
+                                    (rect.height() as f32 * fh / max_height as f32) as u32,
+                                )
+                            });
+
+                    let transform = Transform::from_translation(Vec3::new(
+                        x_pos as f32
+                            + total_width as f32 * anchor_vec_whole.x * scale.x
+                            + width as f32 * anchor_vec_individual.x,
+                        max_height as f32 * anchor_vec_whole.y * scale.y,
+                        0.,
+                    ))
+                    .with_scale(scale);
+
+                    x_pos += width;
+
+                    let child = parent.spawn((
+                        Sprite {
+                            image: image_font.texture.clone_weak(),
+                            texture_atlas: Some(TextureAtlas {
+                                layout: image_font.atlas_layout.clone_weak(),
+                                index: image_font.atlas_character_map[&c],
+                            }),
+                            color: image_font_sprite_text.color,
+                            ..default()
+                        },
+                        transform,
+                    ));
+                    image_font_text_data.sprites.push(child.id());
+
+                    #[cfg(feature = "gizmos")]
+                    #[allow(clippy::used_underscore_binding)]
+                    {
+                        let mut child = child;
+                        child.insert(ImageFontGizmoData {
+                            width,
+                            height: _height,
+                        });
+                    }
+                }
+            });
+        }
+
+        if let Some(new_image_font_text_data) = maybe_new_image_font_text_data {
+            commands.entity(entity).insert(new_image_font_text_data);
+        }
     }
 }
 

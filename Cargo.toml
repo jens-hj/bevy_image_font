@@ -115,6 +115,7 @@ variant_size_differences = "warn"
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 needless_pass_by_value = "allow"
+type_complexity = "allow"
 
 [package.metadata.docs.rs]
 # document all features

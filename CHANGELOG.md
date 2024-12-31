@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Error enums (`ImageFontLoadError` and `ImageFontRenderError`) with comprehensive explanations of possible errors.
 - Added detailed comments to the `AtlasSpritesPlugin` and `ImageFontSpriteText` structs to describe their functionality.
 - Added more Rust lint configuration to `Cargo.toml`.
+- Added `ImageFontTextData` to track sprite-entity relationships and optimize sprite updates.
+- Enhanced `set_up_sprites` system to update, add, or remove sprites dynamically for `ImageFontSpriteText`.
 
 ### Changed
 
@@ -35,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `sprite.rs` → `rendered_sprite.rs`
   - `bevy_ui.rs` → `rendered_ui.rs`
 - Improved documentation for `ImageFontPlugin` to include usage examples and feature descriptions.
+- Changed `atlased_sprite.rs` to demonstrate animated text and colors.
 
 ### Removed
 
