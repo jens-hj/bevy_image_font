@@ -198,9 +198,13 @@ impl AssetLoader for ImageFontLoader {
 
         let size = image.size();
         let char_map = disk_format.layout.into_char_map(size);
-        let image_handle = load_context.add_labeled_asset("texture".into(), image);
+        let image_handle = load_context.add_labeled_asset(String::from("texture"), image);
 
-        Ok(ImageFont::from_char_map(image_handle, size, &char_map))
+        let (map, layout) = ImageFont::mapped_atlas_layout_from_char_map(size, &char_map);
+        let layout_handle = load_context.add_labeled_asset(String::from("layout"), layout);
+
+        let image_font = ImageFont::from_mapped_atlas_layout(image_handle, map, layout_handle);
+        Ok(image_font)
     }
 
     fn extensions(&self) -> &[&str] {

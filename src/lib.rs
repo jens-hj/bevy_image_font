@@ -53,32 +53,43 @@ pub struct ImageFontSet;
 /// An image font as well as the mapping of characters to regions inside it.
 #[derive(Debug, Clone, Reflect, Asset)]
 pub struct ImageFont {
-    pub layout: TextureAtlasLayout,
+    pub atlas_layout: Handle<TextureAtlasLayout>,
     pub texture: Handle<Image>,
     /// The glyph used to render `c` is contained in the part of the image
-    /// pointed to by `atlas.textures[index_map[c]]`.
-    pub index_map: HashMap<char, usize>,
+    /// pointed to by `atlas.textures[atlas_character_map[c]]`.
+    pub atlas_character_map: HashMap<char, usize>,
 }
 
 impl ImageFont {
-    fn from_char_map(texture: Handle<Image>, size: UVec2, char_map: &HashMap<char, URect>) -> Self {
-        let mut index_map = HashMap::new();
-        let mut layout = TextureAtlasLayout::new_empty(size);
-        for (i, (&c, &rect)) in char_map.iter().enumerate() {
-            index_map.insert(c, i);
-            layout.add_texture(rect);
+    fn mapped_atlas_layout_from_char_map(
+        size: UVec2,
+        char_rect_map: &HashMap<char, URect>,
+    ) -> (HashMap<char, usize>, TextureAtlasLayout) {
+        let mut atlas_character_map = HashMap::new();
+        let mut atlas_layout = TextureAtlasLayout::new_empty(size);
+        for (&c, &rect) in char_rect_map.iter() {
+            atlas_character_map.insert(c, atlas_layout.add_texture(rect));
         }
+
+        (atlas_character_map, atlas_layout)
+    }
+
+    fn from_mapped_atlas_layout(
+        texture: Handle<Image>,
+        atlas_character_map: HashMap<char, usize>,
+        atlas_layout: Handle<TextureAtlasLayout>,
+    ) -> Self {
         Self {
-            layout,
+            atlas_layout,
             texture,
-            index_map,
+            atlas_character_map,
         }
     }
 
     fn filter_string(&self, s: impl AsRef<str>) -> String {
         s.as_ref()
             .chars()
-            .filter(|c| self.index_map.contains_key(c))
+            .filter(|c| self.atlas_character_map.contains_key(c))
             .collect()
     }
 }
@@ -115,11 +126,12 @@ pub fn render_sprites(
     mut query: Query<(&ImageFontText, &mut Sprite), Changed<ImageFontText>>,
     image_fonts: Res<Assets<ImageFont>>,
     mut images: ResMut<Assets<Image>>,
+    layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
     for (image_font_text, mut image_handle) in &mut query {
         debug!("Rendering [{}]", image_font_text.text);
         // don't need to clear the old image since it'll be no longer live
-        match render_text(image_font_text, image_fonts.as_ref(), images.as_ref()) {
+        match render_text(image_font_text, &image_fonts, &images, &layouts) {
             Ok(image) => {
                 image_handle.image = images.add(image);
             }
@@ -140,11 +152,12 @@ pub fn render_ui_images(
     mut query: Query<(&ImageFontText, &mut ImageNode), Changed<ImageFontText>>,
     image_fonts: Res<Assets<ImageFont>>,
     mut images: ResMut<Assets<Image>>,
+    layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
     for (image_font_text, mut ui_image) in &mut query {
         debug!("Rendering [{}]", image_font_text.text);
         // don't need to clear the old image since it'll be no longer live
-        match render_text(image_font_text, image_fonts.as_ref(), images.as_ref()) {
+        match render_text(image_font_text, &image_fonts, &images, &layouts) {
             Ok(image) => {
                 ui_image.image = images.add(image);
             }
@@ -182,6 +195,7 @@ pub fn render_text(
     image_font_text: &ImageFontText,
     image_fonts: &Assets<ImageFont>,
     images: &Assets<Image>,
+    layouts: &Assets<TextureAtlasLayout>,
 ) -> Result<Image, ImageFontRenderError> {
     let image_font = image_fonts
         .get(&image_font_text.font)
@@ -189,7 +203,9 @@ pub fn render_text(
     let font_texture = images
         .get(&image_font.texture)
         .ok_or(ImageFontRenderError::MissingTextureAsset)?;
-    let layout = &image_font.layout;
+    let layout = layouts
+        .get(&image_font.atlas_layout)
+        .expect("handle is kept alive by ImageFont");
 
     let text = image_font.filter_string(&image_font_text.text);
 
@@ -211,12 +227,12 @@ pub fn render_text(
     // as wide as the sum of all characters, as tall as the tallest one
     let height = text
         .chars()
-        .map(|c| layout.textures[image_font.index_map[&c]].height())
+        .map(|c| layout.textures[image_font.atlas_character_map[&c]].height())
         .reduce(u32::max)
         .unwrap();
     let width = text
         .chars()
-        .map(|c| layout.textures[image_font.index_map[&c]].width())
+        .map(|c| layout.textures[image_font.atlas_character_map[&c]].width())
         .reduce(|a, b| a + b)
         .unwrap();
 
@@ -230,7 +246,7 @@ pub fn render_text(
 
     let mut x = 0;
     for c in text.chars() {
-        let rect = layout.textures[image_font.index_map[&c]];
+        let rect = layout.textures[image_font.atlas_character_map[&c]];
         let width = rect.width();
         let height = rect.height();
         output_image.copy_from(
