@@ -2,7 +2,7 @@
 [![Crates.io](https://img.shields.io/crates/l/bevy_image_font)](https://crates.io/crates/bevy_image_font)
 [![Crates.io](https://img.shields.io/crates/d/bevy_image_font)](https://crates.io/crates/bevy_image_font)
 [![Docs.io](https://docs.rs/bevy_image_font/badge.svg)](https://docs.rs/bevy_image_font)
-[![Docs master](https://img.shields.io/static/v1?label=docs&message=master&color=5479ab)](https://ilyvion.github.io/bevy_image_font/)
+[![Docs main](https://img.shields.io/static/v1?label=docs&message=main&color=5479ab)](https://ilyvion.github.io/bevy_image_font/)
 [![Rust](https://github.com/ilyvion/bevy_image_font/actions/workflows/CI.yml/badge.svg)](https://github.com/ilyvion/bevy_image_font/actions/workflows/CI.yml)
 
 `bevy_image_font` allows rendering fonts that are stored as a single image (typically PNG), with each letter at a given location. This is common in game development, especially for pixel art fonts, since it allows the use of colors and creating a font can be done using any image editor as opposed to specialized software. These are also sometimes known as 'pixel fonts', but I choose the name 'image font' to be more precise (since bitmap fonts stored in OTB could also be called 'pixel fonts').
