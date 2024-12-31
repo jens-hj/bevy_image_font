@@ -1,0 +1,268 @@
+//! This module provides functionality for rendering text as images in the Bevy
+//! engine, utilizing custom image fonts. It includes components for
+//! pre-rendering text for both in-world and UI contexts, as well as systems to
+//! update and render the text when changes occur.
+//!
+//! Key Features:
+//! - `ImageFontPreRenderedText` and `ImageFontPreRenderedUiText` components for
+//!   in-world and UI text rendering, respectively.
+//! - Systems for rendering text updates to `Sprite` or `ImageNode` components
+//!   dynamically.
+//! - Integrates with the `image` crate for low-level image manipulation.
+
+use bevy::{
+    prelude::*,
+    render::{
+        render_asset::RenderAssetUsages,
+        render_resource::{Extent3d, TextureDimension, TextureFormat},
+    },
+};
+use bevy_image::{Image, ImageSampler};
+use image::{
+    imageops::{self, FilterType},
+    GenericImage, GenericImageView, ImageBuffer, ImageError, Rgba,
+};
+use thiserror::Error;
+
+use crate::{ImageFont, ImageFontText};
+
+/// A component for displaying in-world text that has been pre-rendered using an
+/// image font.
+///
+/// This component requires an `ImageFontText` component for determining its
+/// font and text. It renders its text into an image and sets it as the texture
+/// on its `Sprite` component.
+#[derive(Component, Debug, Default, Clone, Reflect)]
+#[require(ImageFontText, Sprite)]
+pub struct ImageFontPreRenderedText;
+
+/// A component for displaying UI text that has been pre-rendered using an image
+/// font.
+///
+/// This component requires an `ImageFontText` component for determining its
+/// font and text. It renders its text into an image and sets it as the texture
+/// on its `ImageNode` component.
+#[derive(Component, Debug, Default, Clone, Reflect)]
+#[cfg(feature = "ui")]
+#[require(ImageFontText, ImageNode)]
+pub struct ImageFontPreRenderedUiText;
+
+/// System that renders each [`ImageFontText`] into its [`Sprite`]. This system
+/// only runs when the `ImageFontText` changes.
+pub fn render_text_to_sprite(
+    mut query: Query<(&ImageFontText, &mut Sprite), Changed<ImageFontText>>,
+    image_fonts: Res<Assets<ImageFont>>,
+    mut images: ResMut<Assets<Image>>,
+    layouts: Res<Assets<TextureAtlasLayout>>,
+) {
+    render_text_to_image_holder(
+        query.iter_mut().map(|(a, b)| (a, b.into_inner())),
+        &image_fonts,
+        &mut images,
+        &layouts,
+    );
+}
+
+#[cfg(feature = "ui")]
+/// System that renders each [`ImageFontText`] into its [`ImageNode`]. This
+/// system only runs when the `ImageFontText` changes.
+pub fn render_text_to_image_node(
+    mut query: Query<(&ImageFontText, &mut ImageNode), Changed<ImageFontText>>,
+    image_fonts: Res<Assets<ImageFont>>,
+    mut images: ResMut<Assets<Image>>,
+    layouts: Res<Assets<TextureAtlasLayout>>,
+) {
+    render_text_to_image_holder(
+        query.iter_mut().map(|(a, b)| (a, b.into_inner())),
+        &image_fonts,
+        &mut images,
+        &layouts,
+    );
+}
+
+/// Renders text into images and assigns the resulting image handles to their
+/// holders.
+///
+/// This function is designed to work with any type that implements
+/// [`ImageHandleHolder`], allowing it to be used with multiple components, such
+/// as sprites and UI elements.
+///
+/// # Parameters
+/// - `font_text_to_image_iter`: An iterator over pairs of [`ImageFontText`] and
+///   mutable references to objects implementing [`ImageHandleHolder`]. Each
+///   item in the iterator represents a text-to-image mapping to be rendered.
+/// - `image_fonts`: A reference to the font assets used for rendering.
+/// - `images`: A mutable reference to the collection of image assets. This is
+///   used to store the newly rendered images.
+/// - `layouts`: A reference to the collection of texture atlas assets.
+///
+/// The function iterates over the provided items, renders the text for each
+/// [`ImageFontText`], and updates the corresponding [`ImageHandleHolder`] with
+/// the handle to the newly created image.
+///
+/// # Errors
+/// If text rendering fails for an item, an error message is logged, and the
+/// corresponding holder is not updated.
+fn render_text_to_image_holder<'a>(
+    font_text_to_image_iter: impl Iterator<
+        Item = (&'a ImageFontText, &'a mut (impl ImageHandleHolder + 'a)),
+    >,
+    image_fonts: &Assets<ImageFont>,
+    images: &mut Assets<Image>,
+    layouts: &Assets<TextureAtlasLayout>,
+) {
+    for (image_font_text, image_handle_holder) in font_text_to_image_iter {
+        debug!("Rendering [{}]", image_font_text.text);
+        match render_text_to_image(image_font_text, image_fonts, images, layouts) {
+            Ok(image) => {
+                image_handle_holder.set_image_handle(images.add(image));
+            }
+            Err(e) => {
+                error!(
+                    "Error when rendering image font text {:?}: {}",
+                    image_font_text, e
+                );
+            }
+        }
+    }
+}
+
+/// Renders the text inside the [`ImageFontText`] to a single output image. You
+/// don't need to use this if you're using the built-in functionality, but if
+/// you want to use this for some other custom plugin/system, you can call this.
+#[allow(clippy::result_large_err)]
+fn render_text_to_image(
+    image_font_text: &ImageFontText,
+    image_fonts: &Assets<ImageFont>,
+    images: &Assets<Image>,
+    layouts: &Assets<TextureAtlasLayout>,
+) -> Result<Image, ImageFontRenderError> {
+    let image_font = image_fonts
+        .get(&image_font_text.font)
+        .ok_or(ImageFontRenderError::MissingImageFontAsset)?;
+    let font_texture = images
+        .get(&image_font.texture)
+        .ok_or(ImageFontRenderError::MissingTextureAsset)?;
+    let layout = layouts
+        .get(&image_font.atlas_layout)
+        .expect("handle is kept alive by ImageFont");
+
+    let text = image_font.filter_string(&image_font_text.text);
+
+    if text.is_empty() {
+        // can't make a 0x0 image, so make a 1x1 transparent black pixel
+        return Ok(Image::new(
+            Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+            TextureDimension::D2,
+            vec![0, 0, 0, 0],
+            TextureFormat::Rgba8UnormSrgb,
+            RenderAssetUsages::RENDER_WORLD,
+        ));
+    }
+
+    // as wide as the sum of all characters, as tall as the tallest one
+    let height = text
+        .chars()
+        .map(|c| layout.textures[image_font.atlas_character_map[&c]].height())
+        .reduce(u32::max)
+        .unwrap();
+    let width = text
+        .chars()
+        .map(|c| layout.textures[image_font.atlas_character_map[&c]].width())
+        .reduce(|a, b| a + b)
+        .unwrap();
+
+    let mut output_image = image::RgbaImage::new(width, height);
+    let font_texture: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(
+        font_texture.width(),
+        font_texture.height(),
+        font_texture.data.as_slice(),
+    )
+    .ok_or(ImageFontRenderError::UnknownError)?;
+
+    let mut x = 0;
+    for c in text.chars() {
+        let rect = layout.textures[image_font.atlas_character_map[&c]];
+        let width = rect.width();
+        let height = rect.height();
+        output_image.copy_from(
+            &*font_texture.view(rect.min.x, rect.min.y, width, height),
+            x,
+            0,
+        )?;
+        x += width;
+    }
+
+    if let Some(font_height) = image_font_text.font_height {
+        let width = output_image.width() as f32 * font_height / output_image.height() as f32;
+        output_image = imageops::resize(
+            &output_image,
+            width as u32,
+            font_height as u32,
+            FilterType::Nearest,
+        );
+    }
+
+    let mut bevy_image = Image::new(
+        Extent3d {
+            // these might have changed because of the resize
+            width: output_image.width(),
+            height: output_image.height(),
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        output_image.into_vec(),
+        TextureFormat::Rgba8UnormSrgb,
+        RenderAssetUsages::RENDER_WORLD,
+    );
+    bevy_image.sampler = ImageSampler::nearest();
+    Ok(bevy_image)
+}
+
+/// Errors that can show up during rendering.
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum ImageFontRenderError {
+    #[error("failed to convert image to DynamicImage: {0}")]
+    ImageConversion(String),
+    #[error("ImageFont asset not loaded")]
+    MissingImageFontAsset,
+    #[error("Font texture asset not loaded")]
+    MissingTextureAsset,
+    #[error("internal error")]
+    UnknownError,
+    #[error("failed to copy from atlas")]
+    CopyFailure(#[from] ImageError),
+}
+
+/// A helper trait that represents types that can hold an image handle.
+///
+/// This is used to abstract over different components (e.g., [`Sprite`] and
+/// [`ImageNode`]) that need to store a handle to an image rendered from text.
+trait ImageHandleHolder {
+    /// Sets the handle for the image that this holder represents.
+    ///
+    /// This method is called after rendering text into an image
+    /// to update the holder with the new image handle.
+    ///
+    /// # Parameters
+    /// - `image`: The handle to the newly rendered image.
+    fn set_image_handle(&mut self, image: Handle<Image>);
+}
+
+impl ImageHandleHolder for Sprite {
+    fn set_image_handle(&mut self, image: Handle<Image>) {
+        self.image = image;
+    }
+}
+
+#[cfg(feature = "ui")]
+impl ImageHandleHolder for ImageNode {
+    fn set_image_handle(&mut self, image: Handle<Image>) {
+        self.image = image;
+    }
+}

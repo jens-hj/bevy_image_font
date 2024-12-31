@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Introduced the `rendered` feature, allowing text rendering to `Sprite` and `ImageNode` components using `ImageFontPreRenderedText` and `ImageFontPreRenderedUiText`.
+
 ### Changed
 
 - Made rendering text function no longer `pub`; this is an internal implementation detail.
 - Renamed `ImageFontSpriteText` to `ImageFontPreRenderedText` and `ImageFontUiText` to `ImageFontPreRenderedUiText`.
+- Refactored text rendering systems into the `rendered` module, making them conditional on the `rendered` feature.
+- Updated `Cargo.toml` to make the `image` dependency optional, activated only with the `rendered` feature.
 
 ## [0.6.0] - 2024-12-31
 

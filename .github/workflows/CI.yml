@@ -69,14 +69,14 @@ jobs:
 
             - name: Cargo test
               id: tests
-              run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace
+              run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace --exclude-features default
 
             # - name: Cargo test
             #   id: tests
-            #   run: cargo hack --feature-powerset --keep-going test --message-format=json --no-fail-fast --workspace > tests.json
+            #   run: cargo hack --feature-powerset --keep-going test --message-format=json --no-fail-fast --workspace --exclude-features default > tests.json
 
             # - name: Cargo test (with output on failure)
-            #   run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace
+            #   run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace --exclude-features default
             #   if: failure() && steps.tests.outcome == 'failure'
 
             # - name: Cargo metadata
