@@ -1,5 +1,4 @@
 //! Code for parsing an [`ImageFont`] off of an on-disk representation.
-use std::path::PathBuf;
 
 use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext, LoadDirectError},
@@ -7,6 +6,7 @@ use bevy::{
     utils::HashMap,
 };
 use bevy_image::{Image, ImageSampler, ImageSamplerDescriptor};
+use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -150,12 +150,45 @@ pub struct ImageFontSettings {
     /// The path to the image file containing the font glyphs, relative to the
     /// RON file. This should be a valid path to a texture file that can be
     /// loaded by the asset system.
-    pub image: PathBuf,
+    pub image: Utf8PathBuf,
 
     /// The layout description of the font, specifying how characters map to
     /// regions within the image. This can use any of the variants provided
     /// by [`ImageFontLayout`], allowing flexible configuration.
     pub layout: ImageFontLayout,
+}
+
+impl ImageFontSettings {
+    /// Validates the `ImageFontSettings` struct to ensure all required fields
+    /// are populated.
+    ///
+    /// # Errors
+    ///   - `ImageFontLoadError::EmptyImagePath` if the `image` path is empty.
+    ///   - `ImageFontLoadError::EmptyLayoutString` if the `layout` string for
+    ///     `Automatic` is empty.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use camino::Utf8PathBuf;
+    /// # use bevy_image_font::loader::{ImageFontLayout, ImageFontSettings};
+    ///
+    /// let settings = ImageFontSettings {
+    ///     image: Utf8PathBuf::from("path/to/font.png"),
+    ///     layout: ImageFontLayout::Automatic("ABCDEF".into()),
+    /// };
+    /// assert!(settings.validate().is_ok());
+    /// ```
+    #[allow(clippy::result_large_err)]
+    pub fn validate(&self) -> Result<(), ImageFontLoadError> {
+        if self.image.as_str().trim().is_empty() {
+            return Err(ImageFontLoadError::EmptyImagePath);
+        }
+        if matches!(self.layout, ImageFontLayout::Automatic(ref layout) if layout.trim().is_empty())
+        {
+            return Err(ImageFontLoadError::EmptyLayoutString);
+        }
+        Ok(())
+    }
 }
 
 /// Loader for [`ImageFont`]s.
@@ -171,6 +204,16 @@ pub enum ImageFontLoadError {
     #[error("couldn't parse on-disk representation: {0}")]
     ParseFailure(#[from] ron::error::SpannedError),
 
+    /// The image path provided in the settings is empty. This error occurs
+    /// when no valid file path is specified for the font image.
+    #[error("Image path is empty.")]
+    EmptyImagePath,
+
+    /// The layout string used for automatic character placement is empty.
+    /// This error occurs when no characters are defined in the layout string.
+    #[error("Automatic layout string is empty.")]
+    EmptyLayoutString,
+
     /// An I/O error occurred while loading the image font. This might happen
     /// if the file cannot be accessed, is missing, or is corrupted.
     #[error("i/o error when loading image font: {0}")]
@@ -184,8 +227,8 @@ pub enum ImageFontLoadError {
     /// The path provided for the font's image was not loaded as an image. This
     /// may occur if the file is in an unsupported format or if the path is
     /// incorrect.
-    #[error("path at {0} wasn't loaded as an image")]
-    NotAnImage(PathBuf),
+    #[error("Path does not point to a valid image file: {0}")]
+    NotAnImage(Utf8PathBuf),
 }
 
 /// Configuration settings for the `ImageFontLoader`.
@@ -226,7 +269,10 @@ impl AssetLoader for ImageFontLoader {
     ) -> Result<Self::Asset, Self::Error> {
         let mut str = String::new();
         reader.read_to_string(&mut str).await?;
+
         let disk_format: ImageFontSettings = ron::from_str(&str)?;
+
+        disk_format.validate()?;
 
         // need the image loaded immediately because we need its size
         let image_path = load_context
@@ -241,7 +287,9 @@ impl AssetLoader for ImageFontLoader {
             .load(image_path.clone())
             .await?
             .take::<Image>()
-            .ok_or(ImageFontLoadError::NotAnImage(image_path))?;
+            .ok_or(ImageFontLoadError::NotAnImage(
+                image_path.try_into().unwrap(),
+            ))?;
 
         image.sampler = settings.image_sampler.clone();
 

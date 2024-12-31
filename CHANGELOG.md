@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added detailed comments to the `AtlasSpritesPlugin` and `ImageFontSpriteText` structs to describe their functionality.
 - Added more Rust lint configuration to `Cargo.toml`.
 - Added `ImageFontTextData` to track sprite-entity relationships and optimize sprite updates.
+- Introduced a `validate` method to `ImageFontSettings` to ensure that the `image` path is non-empty and the layout string for `Automatic` is valid.
+- Added `EmptyImagePath` and `EmptyLayoutString` variants to `ImageFontLoadError` for clearer error diagnostics.
+- Added the `camino` crate (version 1.1.9) with `serde1` feature for robust UTF-8 path handling.
 
 ### Changed
 
@@ -39,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed `atlased_sprite.rs` to demonstrate animated text and colors.
 - Added detailed debug logs to monitor sprite creation, updates, and removals for `ImageFontSpriteText` and enhanced comments for better code clarity and maintainability.
 - Enhanced `set_up_sprites` system to update, add, or remove sprites dynamically for `ImageFontSpriteText`.
+- Replaced `PathBuf` with `Utf8PathBuf` in `ImageFontSettings` for stricter validation and compatibility with non-ASCII paths.
+- Updated error messages in `ImageFontLoader` to provide more context when paths are invalid or images fail to load.
 
 ### Removed
 
