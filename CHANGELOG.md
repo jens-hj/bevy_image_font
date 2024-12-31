@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2024-12-31
+
 ### Added
 
 - `ImageFontSpriteText` and `ImageFontUiText` were added as replacements for `ImageFontBundle` and `ImageFontUiBundle`. These now use Bevy 0.15's new required components to ensure that the entity has the components required to show the image font text.
@@ -41,7 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First public release; prior versions are not on Cargo.
 
-[unreleased]: https://github.com/ilyvion/bevy_image_font/compare/v0.5.1...HEAD
+[unreleased]: https://github.com/ilyvion/bevy_image_font/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ilyvion/bevy_image_font/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/ilyvion/bevy_image_font/compare/HEAD...v0.5.1
 [0.5.0]: https://github.com/ilyvion/bevy_image_font/compare/c98d7a05c78be9e1bc8ce46145a2559754ff2924...v0.5.0
 [0.4.0]: https://github.com/ilyvion/bevy_image_font/releases/tag/v0.4.0
