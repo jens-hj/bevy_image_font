@@ -20,12 +20,14 @@ use bevy::{
 use bevy_image::{Image, ImageSampler};
 use image::{
     imageops::{self, FilterType},
-    GenericImage, GenericImageView, ImageBuffer, ImageError, Rgba,
+    GenericImage as _, GenericImageView as _, ImageBuffer, ImageError, Rgba,
 };
 use thiserror::Error;
 
 use crate::{sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText};
 
+/// Internal plugin for conveniently organizing the code related to this
+/// module's feature.
 #[derive(Default)]
 pub(crate) struct RenderedPlugin;
 
@@ -82,7 +84,9 @@ pub fn render_text_to_sprite(
     layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
     render_text_to_image_holder(
-        query.iter_mut().map(|(a, b)| (a, b.into_inner())),
+        query
+            .iter_mut()
+            .map(|(image_font_text, sprite)| (image_font_text, sprite.into_inner())),
         &image_fonts,
         &mut images,
         &layouts,
@@ -99,7 +103,9 @@ pub fn render_text_to_image_node(
     layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
     render_text_to_image_holder(
-        query.iter_mut().map(|(a, b)| (a, b.into_inner())),
+        query
+            .iter_mut()
+            .map(|(image_font_text, image_node)| (image_font_text, image_node.into_inner())),
         &image_fonts,
         &mut images,
         &layouts,
@@ -129,9 +135,12 @@ pub fn render_text_to_image_node(
 /// # Errors
 /// If text rendering fails for an item, an error message is logged, and the
 /// corresponding holder is not updated.
-fn render_text_to_image_holder<'a>(
+fn render_text_to_image_holder<'borrow>(
     font_text_to_image_iter: impl Iterator<
-        Item = (&'a ImageFontText, &'a mut (impl ImageHandleHolder + 'a)),
+        Item = (
+            &'borrow ImageFontText,
+            &'borrow mut (impl ImageHandleHolder + 'borrow),
+        ),
     >,
     image_fonts: &Assets<ImageFont>,
     images: &mut Assets<Image>,
@@ -143,10 +152,10 @@ fn render_text_to_image_holder<'a>(
             Ok(image) => {
                 image_handle_holder.set_image_handle(images.add(image));
             }
-            Err(e) => {
+            Err(error) => {
                 error!(
                     "Error when rendering image font text {:?}: {}",
-                    image_font_text, e
+                    image_font_text, error
                 );
             }
         }
@@ -156,7 +165,6 @@ fn render_text_to_image_holder<'a>(
 /// Renders the text inside the [`ImageFontText`] to a single output image. You
 /// don't need to use this if you're using the built-in functionality, but if
 /// you want to use this for some other custom plugin/system, you can call this.
-#[allow(clippy::result_large_err)]
 fn render_text_to_image(
     image_font_text: &ImageFontText,
     image_fonts: &Assets<ImageFont>,
@@ -169,6 +177,7 @@ fn render_text_to_image(
     let font_texture = images
         .get(&image_font.texture)
         .ok_or(ImageFontRenderError::MissingTextureAsset)?;
+    #[expect(clippy::expect_used, reason = "handle is kept alive by ImageFont")]
     let layout = layouts
         .get(&image_font.atlas_layout)
         .expect("handle is kept alive by ImageFont");
@@ -191,16 +200,24 @@ fn render_text_to_image(
     }
 
     // as wide as the sum of all characters, as tall as the tallest one
+    #[expect(
+        clippy::expect_used,
+        reason = "we've verified !text.is_empty() already"
+    )]
     let height = text
         .filtered_chars()
-        .map(|c| layout.textures[image_font.atlas_character_map[&c]].height())
+        .map(|character| layout.textures[image_font.atlas_character_map[&character]].height())
         .reduce(u32::max)
-        .unwrap();
+        .expect("we've verified !text.is_empty() already");
+    #[expect(
+        clippy::expect_used,
+        reason = "we've verified !text.is_empty() already"
+    )]
     let width = text
         .filtered_chars()
-        .map(|c| layout.textures[image_font.atlas_character_map[&c]].width())
-        .reduce(|a, b| a + b)
-        .unwrap();
+        .map(|character| layout.textures[image_font.atlas_character_map[&character]].width())
+        .reduce(|accumulator, value| accumulator + value)
+        .expect("we've verified !text.is_empty() already");
 
     let mut output_image = image::RgbaImage::new(width, height);
     let font_texture: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(
@@ -211,8 +228,8 @@ fn render_text_to_image(
     .ok_or(ImageFontRenderError::UnknownError)?;
 
     let mut x = 0;
-    for c in text.filtered_chars() {
-        let rect = layout.textures[image_font.atlas_character_map[&c]];
+    for character in text.filtered_chars() {
+        let rect = layout.textures[image_font.atlas_character_map[&character]];
         let width = rect.width();
         let height = rect.height();
         output_image.copy_from(
@@ -223,10 +240,11 @@ fn render_text_to_image(
         x += width;
     }
 
-    #[allow(
+    #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_precision_loss,
-        clippy::cast_sign_loss
+        clippy::cast_sign_loss,
+        reason = "the magnitude of the numbers we're working on here are too small to lose anything"
     )]
     if let Some(font_height) = image_font_text.font_height {
         let width = output_image.width() as f32 * font_height / output_image.height() as f32;

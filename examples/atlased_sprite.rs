@@ -2,16 +2,22 @@
 //! 'native' height and a scaled-up height, also demonstrating use of its
 //! additional `color` value.
 
+#![expect(
+    clippy::mod_module_files,
+    reason = "if present as common.rs, cargo thinks it's an example binary"
+)]
+#![expect(clippy::expect_used, reason = "only used when panics can't happen")]
+
 use std::time::Duration;
 
 use bevy::color::palettes::tailwind;
 use bevy::color::ColorCurve;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
-use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
-use bevy_image_font::{ImageFont, ImageFontPlugin, ImageFontSpriteText, ImageFontText};
+use bevy_asset_loader::prelude::AssetCollectionApp as _;
+use bevy_image_font::{ImageFontPlugin, ImageFontSpriteText, ImageFontText};
 
-use crate::common::{FONT_WIDTH, RAINBOW, TEXT};
+use crate::common::{DemoAssets, FONT_WIDTH, RAINBOW, TEXT};
 
 mod common;
 
@@ -28,23 +34,30 @@ fn main() {
         .run();
 }
 
-#[derive(AssetCollection, Resource)]
-struct DemoAssets {
-    #[asset(path = "example_font.image_font.ron")]
-    image_font: Handle<ImageFont>,
-}
-
+/// A component for animating text content.
+///
+/// The `&'static str` field represents the text to animate, while the `usize`
+/// field tracks the current animation state, i.e. how many characters of the
+/// text is currenly being displayed.
 #[derive(Component)]
 struct AnimateText(&'static str, usize);
 
+/// A component for animating the color of text.
+///
+/// The `ColorCurve` field defines the color gradient used for the animation.
 #[derive(Component)]
 struct AnimateColor(ColorCurve<Srgba>);
 
+/// Spawns the text entities for the example.
+///
+/// This system creates two text entities:
+/// 1. A text entity rendered at a scaled height with animated colors.
+/// 2. A text entity rendered at its native height with animated content.
 fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
     commands.spawn(Camera2d);
 
     commands.spawn((
-        AnimateColor(ColorCurve::new(RAINBOW).unwrap()),
+        AnimateColor(ColorCurve::new(RAINBOW).expect("RAINBOW contains at least two colors")),
         ImageFontSpriteText::default(),
         ImageFontText::default()
             .text(TEXT)
@@ -60,7 +73,11 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
             .color(tailwind::AMBER_500)
             .anchor(Anchor::CenterLeft),
         ImageFontText::default().font(assets.image_font.clone()),
-        #[allow(clippy::cast_precision_loss)]
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "the magnitude of the numbers we're working on here are too small to lose \
+            anything"
+        )]
         Transform::from_translation(Vec3::new(
             -((TEXT.chars().count() * FONT_WIDTH / 2) as f32),
             40.,
@@ -69,6 +86,10 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
     ));
 }
 
+/// Animates the text content of entities with the `AnimateText` component.
+///
+/// This system modifies the `ImageFontText` component to display an animated
+/// sequence of characters, cycling through the text content over time.
 fn animate_text(
     mut query: Query<(&mut AnimateText, &mut ImageFontText)>,
     time: Res<Time>,
@@ -101,10 +122,15 @@ fn animate_text(
     }
 }
 
-#[allow(
+/// Animates the color of text entities with the `AnimateColor` component.
+///
+/// This system modifies the `color` field of the `ImageFontSpriteText`
+/// component to cycle through the colors defined in the `RAINBOW` palette.
+#[expect(
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation,
-    clippy::cast_precision_loss
+    clippy::cast_precision_loss,
+    reason = "the magnitude of the numbers we're working on here are too small to lose anything"
 )]
 fn animate_color(mut query: Query<(&AnimateColor, &mut ImageFontSpriteText)>, time: Res<Time>) {
     for (animate_color, mut image_sprite_font_text) in &mut query {
@@ -114,13 +140,13 @@ fn animate_color(mut query: Query<(&AnimateColor, &mut ImageFontSpriteText)>, ti
             image_sprite_font_text.color = animate_color
                 .0
                 .sample(animation_progress.fract() * len)
-                .unwrap()
+                .expect("fract() is [0,1) and `len` will always be within bounds")
                 .into();
         } else {
             image_sprite_font_text.color = animate_color
                 .0
                 .sample(len - (animation_progress.fract() * len))
-                .unwrap()
+                .expect("fract() is [0,1) and `len` will always be within bounds")
                 .into();
         }
     }

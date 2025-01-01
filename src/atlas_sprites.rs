@@ -21,8 +21,11 @@ use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use derive_setters::Setters;
 
+use crate::filtered_string;
 use crate::{sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText};
 
+/// Internal plugin for conveniently organizing the code related to this
+/// module's feature.
 #[derive(Default)]
 pub(crate) struct AtlasSpritesPlugin;
 
@@ -81,8 +84,14 @@ pub struct ImageFontGizmoData {
 /// sprite gets positioned accordingly to its position in the text. This
 /// system only runs when the `ImageFontText` or [`ImageFontSpriteText`]
 /// changes.
-#[allow(clippy::missing_panics_doc)] // Panics should be impossible
-#[allow(private_interfaces)]
+#[expect(
+    clippy::missing_panics_doc,
+    reason = "expect() is only used on a newly created Some() value"
+)]
+#[expect(
+    private_interfaces,
+    reason = "Systems are only `pub` for the sake of allowing dependent crates to use them for ordering"
+)]
 pub fn set_up_sprites(
     mut commands: Commands,
     mut query: Query<
@@ -105,7 +114,10 @@ pub fn set_up_sprites(
             &mut *image_font_text_data
         } else {
             maybe_new_image_font_text_data = Some(ImageFontTextData::default());
-            maybe_new_image_font_text_data.as_mut().unwrap()
+            #[expect(clippy::expect_used, reason = "newly created Some() value")]
+            maybe_new_image_font_text_data
+                .as_mut()
+                .expect("newly created Some() value")
         };
 
         let Some((image_font, layout)) =
@@ -177,11 +189,11 @@ pub fn set_up_sprites(
 /// An `Option` containing a tuple `(image_font, layout)` if both assets are
 /// successfully retrieved, or `None` if any asset is missing.
 #[inline]
-fn fetch_assets<'a>(
-    image_fonts: &'a Res<Assets<ImageFont>>,
+fn fetch_assets<'assets>(
+    image_fonts: &'assets Res<Assets<ImageFont>>,
     font_handle: &Handle<ImageFont>,
-    texture_atlas_layouts: &'a Res<Assets<TextureAtlasLayout>>,
-) -> Option<(&'a ImageFont, &'a TextureAtlasLayout)> {
+    texture_atlas_layouts: &'assets Res<Assets<TextureAtlasLayout>>,
+) -> Option<(&'assets ImageFont, &'assets TextureAtlasLayout)> {
     let Some(image_font) = image_fonts.get(font_handle) else {
         error!("ImageFont asset not loaded: {:?}", font_handle);
         return None;
@@ -212,15 +224,15 @@ fn fetch_assets<'a>(
 /// A tuple `(total_width, max_height)` representing the text dimensions.
 #[inline]
 fn calculate_text_dimensions(
-    text: &crate::filtered_string::FilteredString<'_, impl AsRef<str>>,
+    text: &filtered_string::FilteredString<'_, impl AsRef<str>>,
     layout: &TextureAtlasLayout,
     image_font: &ImageFont,
 ) -> (u32, u32) {
     let mut total_width = 0;
     let mut max_height = 1;
 
-    for c in text.filtered_chars() {
-        let rect = layout.textures[image_font.atlas_character_map[&c]];
+    for character in text.filtered_chars() {
+        let rect = layout.textures[image_font.atlas_character_map[&character]];
         total_width += rect.width();
         max_height = max_height.max(rect.height());
     }
@@ -239,7 +251,10 @@ fn calculate_text_dimensions(
 ///
 /// # Returns
 /// A `Vec3` representing the uniform scaling factor for text sprites.
-#[allow(clippy::cast_precision_loss)]
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "`max_height` won't ever be particularly large"
+)]
 #[inline]
 fn calculate_scale(font_height: Option<f32>, max_height: u32) -> Vec3 {
     let scale = font_height.map_or(1.0, |font_height| font_height / max_height as f32);
@@ -297,7 +312,6 @@ fn update_existing_sprites(
             Anchors {
                 individual: anchor_vec_individual,
                 whole: anchor_vec_whole,
-                ..
             },
     } = *sprite_layout;
 
@@ -313,18 +327,29 @@ fn update_existing_sprites(
 
     let mut x_pos = 0;
 
-    for (sprite_entity, c) in image_font_text_data
+    for (sprite_entity, character) in image_font_text_data
         .sprites
         .iter()
         .copied()
         .zip(text.filtered_chars())
     {
-        let (mut sprite, mut transform) = child_query.get_mut(sprite_entity).unwrap();
+        let (mut sprite, mut transform) = match child_query.get_mut(sprite_entity) {
+            Ok(result) => result,
+            Err(error) => {
+                error!("An ImageFontSpriteText unexpectedly failed: {error}. This will likely cause rendering bugs.");
+                continue;
+            }
+        };
 
-        sprite.texture_atlas.as_mut().unwrap().index = image_font.atlas_character_map[&c];
+        let Some(sprite_texture) = sprite.texture_atlas.as_mut() else {
+            error!("An ImageFontSpriteText's child sprite was unexpectedly missing a `texture_atlas`. This will likely cause rendering bugs.");
+            continue;
+        };
+
+        sprite_texture.index = image_font.atlas_character_map[&character];
         sprite.color = sprite_text.color;
 
-        let rect = layout.textures[image_font.atlas_character_map[&c]];
+        let rect = layout.textures[image_font.atlas_character_map[&character]];
         let (width, _) = compute_dimensions(rect, font_text.font_height, max_height);
 
         *transform = compute_transform(
@@ -343,11 +368,38 @@ fn update_existing_sprites(
     x_pos
 }
 
-#[allow(
+/// Computes the dimensions of a glyph rectangle, scaled if a specific font
+/// height is provided.
+///
+/// This function calculates the width and height of a glyph rectangle based on
+/// its raw size (from the texture atlas) and optionally scales it to match a
+/// specified font height. If no `font_height` is provided, the raw dimensions
+/// are returned.
+///
+/// # Parameters
+/// - `rect`: The bounding rectangle of the glyph in the texture atlas. The
+///   width and height of this rectangle represent the raw glyph dimensions in
+///   pixels.
+/// - `font_height`: An optional scaling target for the height of the glyph. If
+///   provided, the glyph's dimensions are scaled proportionally to match this
+///   height.
+/// - `max_height`: The maximum glyph height in the text, used to calculate the
+///   scaling factor when `font_height` is provided.
+///
+/// # Returns
+/// A tuple `(width, height)` representing the scaled or raw dimensions of the
+/// glyph.
+///
+/// # Panics
+/// This function assumes that `max_height` is non-zero when `font_height` is
+/// provided. If `max_height` is zero, behavior is undefined and may result in a
+/// panic.
+#[expect(
     clippy::cast_possible_truncation,
     clippy::cast_precision_loss,
-    clippy::cast_sign_loss
+    reason = "the magnitude of the numbers we're working on here are too small to lose anything"
 )]
+#[expect(clippy::cast_sign_loss, reason = "we're working on unsigned values")]
 #[inline]
 fn compute_dimensions(rect: URect, font_height: Option<f32>, max_height: u32) -> (u32, u32) {
     font_height.map_or((rect.width(), rect.height()), |fh| {
@@ -375,7 +427,10 @@ fn compute_dimensions(rect: URect, font_height: Option<f32>, max_height: u32) ->
 ///
 /// # Returns
 /// A `Transform` object representing the sprite's position and scale.
-#[allow(clippy::cast_precision_loss)]
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "we're working on numbers small enough not to be affected"
+)]
 #[inline]
 fn compute_transform(
     x_pos: u32,
@@ -418,14 +473,16 @@ fn adjust_sprite_count(
     sprite_layout: &SpriteLayout,
     sprite_text: &ImageFontSpriteText,
 ) {
+    use std::cmp::Ordering;
+
     let char_count = sprite_context.text.filtered_chars().count();
     let sprite_count = sprite_context.image_font_text_data.sprites.len();
 
     match sprite_count.cmp(&char_count) {
-        std::cmp::Ordering::Greater => {
+        Ordering::Greater => {
             remove_excess_sprites(commands, sprite_context, char_count);
         }
-        std::cmp::Ordering::Less => {
+        Ordering::Less => {
             add_missing_sprites(
                 x_pos,
                 commands,
@@ -435,7 +492,7 @@ fn adjust_sprite_count(
                 sprite_text,
             );
         }
-        std::cmp::Ordering::Equal => {}
+        Ordering::Equal => {}
     }
 }
 
@@ -455,12 +512,12 @@ fn remove_excess_sprites(
     sprite_context: &mut SpriteContext<impl AsRef<str>>,
     char_count: usize,
 ) {
-    for e in sprite_context
+    for entity in sprite_context
         .image_font_text_data
         .sprites
         .drain(char_count..)
     {
-        commands.entity(e).despawn();
+        commands.entity(entity).despawn();
     }
 }
 
@@ -496,7 +553,6 @@ fn add_missing_sprites(
             Anchors {
                 individual: anchor_vec_individual,
                 whole: anchor_vec_whole,
-                ..
             },
     } = *sprite_layout;
 
@@ -510,14 +566,13 @@ fn add_missing_sprites(
         entity,
         ref mut image_font_text_data,
         text,
-        ..
     } = *sprite_context;
 
     let current_sprite_count = image_font_text_data.sprites.len();
 
     commands.entity(entity).with_children(|parent| {
-        for c in text.filtered_chars().skip(current_sprite_count) {
-            let rect = layout.textures[image_font.atlas_character_map[&c]];
+        for character in text.filtered_chars().skip(current_sprite_count) {
+            let rect = layout.textures[image_font.atlas_character_map[&character]];
             let (width, _height) =
                 compute_dimensions(rect, image_font_text.font_height, max_height);
 
@@ -537,7 +592,7 @@ fn add_missing_sprites(
                 image: image_font.texture.clone_weak(),
                 texture_atlas: Some(TextureAtlas {
                     layout: image_font.atlas_layout.clone_weak(),
-                    index: image_font.atlas_character_map[&c],
+                    index: image_font.atlas_character_map[&character],
                 }),
                 color: sprite_text.color,
                 ..Default::default()
@@ -547,7 +602,11 @@ fn add_missing_sprites(
             image_font_text_data.sprites.push(child.id());
 
             #[cfg(feature = "gizmos")]
-            #[allow(clippy::used_underscore_binding)]
+            #[expect(
+                clippy::used_underscore_binding,
+                reason = "we're using an underscore binding here because it's unused when the \
+                `gizmos` feature is not enabled."
+            )]
             {
                 let mut child = child;
                 child.insert(ImageFontGizmoData {
@@ -587,26 +646,26 @@ struct Anchors {
 ///
 /// Includes references to the texture atlas layout, font asset, and the
 /// font text component that defines the text content and font height.
-struct FontAssets<'a> {
+struct FontAssets<'assets> {
     /// The texture atlas layout defining glyph placements.
-    layout: &'a TextureAtlasLayout,
+    layout: &'assets TextureAtlasLayout,
     /// The font asset containing glyph metadata.
-    image_font: &'a ImageFont,
+    image_font: &'assets ImageFont,
     /// The text component defining the content and font height.
-    image_font_text: &'a ImageFontText,
+    image_font_text: &'assets ImageFontText,
 }
 
 /// Represents the entity and its associated text sprites during rendering.
 ///
 /// Manages the commands for modifying the entity, its sprite data, and the
 /// filtered text to ensure the sprites match the text content.
-struct SpriteContext<'a, S: AsRef<str>> {
+struct SpriteContext<'data, S: AsRef<str>> {
     /// The entity associated with the text sprites.
     entity: Entity,
     /// The mutable text sprite data component for the entity.
-    image_font_text_data: &'a mut ImageFontTextData,
+    image_font_text_data: &'data mut ImageFontTextData,
     /// The filtered text to be rendered as sprites.
-    text: &'a crate::filtered_string::FilteredString<'a, S>,
+    text: &'data filtered_string::FilteredString<'data, S>,
 }
 
 /// Renders gizmos for debugging `ImageFontText` and its associated glyphs in
@@ -624,10 +683,10 @@ struct SpriteContext<'a, S: AsRef<str>> {
 /// ### Notes
 /// This function is enabled only when the `gizmos` feature is active and
 /// leverages the Bevy gizmo system for runtime visualization.
-#[allow(
-    clippy::cast_possible_truncation,
+#[expect(
     clippy::cast_precision_loss,
-    clippy::cast_sign_loss
+    reason = "the magnitude of the numbers we're working on here are too small to lose \
+    anything"
 )]
 #[cfg(feature = "gizmos")]
 pub fn render_sprite_gizmos(
@@ -635,6 +694,8 @@ pub fn render_sprite_gizmos(
     query: Query<(&GlobalTransform, &Children), With<ImageFontText>>,
     child_query: Query<(&GlobalTransform, &ImageFontGizmoData), Without<ImageFontText>>,
 ) {
+    use bevy::color::palettes::css;
+
     for (global_transform, children) in &query {
         for &child in children {
             if let Ok((child_global_transform, image_font_gizmo_data)) = child_query.get(child) {
@@ -644,7 +705,7 @@ pub fn render_sprite_gizmos(
                         image_font_gizmo_data.width as f32,
                         image_font_gizmo_data.height as f32,
                     ),
-                    bevy::color::palettes::css::PURPLE,
+                    css::PURPLE,
                 );
             }
         }
@@ -652,7 +713,7 @@ pub fn render_sprite_gizmos(
         gizmos.cross_2d(
             Isometry2d::from_translation(global_transform.translation().truncate()),
             10.,
-            bevy::color::palettes::css::RED,
+            css::RED,
         );
     }
 }

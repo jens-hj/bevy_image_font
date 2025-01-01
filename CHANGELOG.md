@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduced a `validate` method to `ImageFontSettings` to ensure that the `image` path is non-empty and the layout string for `Automatic` is valid.
 - Added `EmptyImagePath` and `EmptyLayoutString` variants to `ImageFontLoadError` for clearer error diagnostics.
 - Added the `camino` crate (version 1.1.9) with `serde1` feature for robust UTF-8 path handling.
+- Introduced stricter linting rules in `Cargo.toml` to enforce higher code quality standards.
 
 ### Changed
 
@@ -44,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced `set_up_sprites` system to update, add, or remove sprites dynamically for `ImageFontSpriteText`.
 - Replaced `PathBuf` with `Utf8PathBuf` in `ImageFontSettings` for stricter validation and compatibility with non-ASCII paths.
 - Updated error messages in `ImageFontLoader` to provide more context when paths are invalid or images fail to load.
+
+### Fixed
+
+- Addressed inconsistencies in type annotations, parameter naming, and error handling across core systems and modules.
 
 ### Removed
 

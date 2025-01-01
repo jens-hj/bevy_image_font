@@ -117,9 +117,31 @@ unused_qualifications = "warn"
 variant_size_differences = "warn"
 
 [lints.clippy]
+suspicious = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
+# restriction = { level = "warn", priority = -1 }
 needless_pass_by_value = "allow"
 type_complexity = "allow"
+mod-module-files = "deny"
+allow-attributes-without-reason = "deny"
+missing_docs_in_private_items = "warn"
+allow_attributes = "warn"
+unwrap_used = "deny"
+single_char_lifetime_names = "warn"
+absolute_paths = "warn"
+min_ident_chars = "deny"
+rest_pat_in_fully_bound_structs = "deny"
+pub_without_shorthand = "deny"
+# XXX: This currently triggers a false-positive `missing_docs` if applied as suggsted; enable when
+#      fixed.
+# doc_include_without_cfg = "deny"
+pattern_type_mismatch = "deny"
+wildcard_enum_match_arm = "warn"
+unused_trait_names = "deny"
+expect_used = "warn"
 
 [package.metadata.docs.rs]
 # document all features

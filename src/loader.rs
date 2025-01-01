@@ -1,12 +1,18 @@
 //! Code for parsing an [`ImageFont`] off of an on-disk representation.
 
+#![expect(clippy::absolute_paths, reason = "false positives")]
+
+use std::io::Error as IoError;
+use std::path::PathBuf;
+
 use bevy::{
-    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext, LoadDirectError},
+    asset::{io::Reader, AssetLoader, AsyncReadExt as _, LoadContext, LoadDirectError},
     prelude::*,
     utils::HashMap,
 };
 use bevy_image::{Image, ImageSampler, ImageSamplerDescriptor};
 use camino::Utf8PathBuf;
+use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -83,7 +89,11 @@ pub enum ImageFontLayout {
 
 impl ImageFontLayout {
     /// Given the image size, returns a map from each codepoint to its location.
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "while usize can hold more data than u32, we're working on a number here that \
+        should be substantially smaller than even u32's capacity"
+    )]
     fn into_char_map(self, size: UVec2) -> HashMap<char, URect> {
         match self {
             ImageFontLayout::Automatic(str) => {
@@ -92,10 +102,14 @@ impl ImageFontLayout {
                     .trim_start_matches(['\r', '\n'])
                     .trim_end_matches(['\r', '\n']);
                 let mut rect_map = HashMap::new();
+                #[expect(
+                    clippy::expect_used,
+                    reason = "this intentionally panics on an empty string"
+                )]
                 let max_chars_per_line = str
                     .lines()
                     // important: *not* l.len()
-                    .map(|l| l.chars().count())
+                    .map(|line| line.chars().count())
                     .max()
                     .expect("can't create character map from an empty string")
                     as u32;
@@ -132,7 +146,9 @@ impl ImageFontLayout {
             }
             ImageFontLayout::ManualMonospace { size, coords } => coords
                 .into_iter()
-                .map(|(c, top_left)| (c, URect::from_corners(top_left, size + top_left)))
+                .map(|(character, top_left)| {
+                    (character, URect::from_corners(top_left, size + top_left))
+                })
                 .collect(),
             ImageFontLayout::Manual(urect_map) => urect_map,
         }
@@ -178,7 +194,7 @@ impl ImageFontSettings {
     /// };
     /// assert!(settings.validate().is_ok());
     /// ```
-    #[allow(clippy::result_large_err)]
+    //#[allow(clippy::result_large_err)]
     pub fn validate(&self) -> Result<(), ImageFontLoadError> {
         if self.image.as_str().trim().is_empty() {
             return Err(ImageFontLoadError::EmptyImagePath);
@@ -202,7 +218,7 @@ pub enum ImageFontLoadError {
     /// Parsing the on-disk representation of the font failed. This typically
     /// indicates a syntax or formatting error in the RON file.
     #[error("couldn't parse on-disk representation: {0}")]
-    ParseFailure(#[from] ron::error::SpannedError),
+    ParseFailure(#[from] SpannedError),
 
     /// The image path provided in the settings is empty. This error occurs
     /// when no valid file path is specified for the font image.
@@ -217,18 +233,35 @@ pub enum ImageFontLoadError {
     /// An I/O error occurred while loading the image font. This might happen
     /// if the file cannot be accessed, is missing, or is corrupted.
     #[error("i/o error when loading image font: {0}")]
-    Io(#[from] std::io::Error),
+    Io(#[from] IoError),
 
     /// Failed to load an asset directly. This is usually caused by an error
     /// in the asset pipeline or a missing dependency.
     #[error("failed to load asset: {0}")]
-    LoadDirect(#[from] LoadDirectError),
+    LoadDirect(Box<LoadDirectError>),
 
     /// The path provided for the font's image was not loaded as an image. This
     /// may occur if the file is in an unsupported format or if the path is
     /// incorrect.
     #[error("Path does not point to a valid image file: {0}")]
     NotAnImage(Utf8PathBuf),
+
+    /// The path provided for the font's image was not loaded as an image. This
+    /// may occur if the file is in an unsupported format or if the path is
+    /// incorrect.
+    #[error("Path is not valid UTF-8: {0:?}")]
+    InvalidPath(PathBuf),
+
+    /// The asset path has no parent directory.
+    #[error("Asset path has no parent directory")]
+    MissingParentPath,
+}
+
+impl From<LoadDirectError> for ImageFontLoadError {
+    #[inline]
+    fn from(value: LoadDirectError) -> Self {
+        Self::LoadDirect(Box::new(value))
+    }
 }
 
 /// Configuration settings for the `ImageFontLoader`.
@@ -254,9 +287,6 @@ impl Default for ImageFontLoaderSettings {
 impl AssetLoader for ImageFontLoader {
     type Asset = ImageFont;
 
-    // We could use ImageFontSettings, but an AssetLoader's settings has to
-    // imnplement `Default`, and there's no sensible default value for that
-    // type.
     type Settings = ImageFontLoaderSettings;
 
     type Error = ImageFontLoadError;
@@ -278,18 +308,22 @@ impl AssetLoader for ImageFontLoader {
         let image_path = load_context
             .path()
             .parent()
-            .expect("asset's parent is None?")
+            .ok_or(ImageFontLoadError::MissingParentPath)?
             .join(disk_format.image.clone());
-        let mut image = load_context
+        let Some(mut image) = load_context
             .loader()
             .immediate()
             .with_unknown_type()
             .load(image_path.clone())
             .await?
             .take::<Image>()
-            .ok_or(ImageFontLoadError::NotAnImage(
-                image_path.try_into().unwrap(),
-            ))?;
+        else {
+            let path = match Utf8PathBuf::from_path_buf(image_path) {
+                Ok(path) => path,
+                Err(image_path) => return Err(ImageFontLoadError::InvalidPath(image_path)),
+            };
+            return Err(ImageFontLoadError::NotAnImage(path));
+        };
 
         image.sampler = settings.image_sampler.clone();
 

@@ -77,7 +77,10 @@ impl Plugin for ImageFontPlugin {
     }
 }
 
-/// System set for systems related to [`ImageFontPlugin`].
+/// A system set containing all systems related to the [`ImageFontPlugin`].
+///
+/// This can be used to group, disable, or reorder systems provided by
+/// the plugin.
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, SystemSet)]
 pub struct ImageFontSet;
 
@@ -102,19 +105,57 @@ pub struct ImageFont {
 }
 
 impl ImageFont {
+    /// Creates a character map and a texture atlas layout from a map of
+    /// character rectangles.
+    ///
+    /// This method processes a map of characters to their bounding rectangles
+    /// within a texture and generates both:
+    /// 1. A character map (`atlas_character_map`) that maps each character to
+    ///    its index in the texture atlas.
+    /// 2. A texture atlas layout (`TextureAtlasLayout`) containing the bounding
+    ///    rectangles of all characters.
+    ///
+    /// # Parameters
+    /// - `size`: The size of the texture (width and height in pixels).
+    /// - `char_rect_map`: A map of characters to their corresponding bounding
+    ///   rectangles in the texture.
+    ///
+    /// # Returns
+    /// A tuple containing:
+    /// - `HashMap<char, usize>`: A map of characters to their indices in the
+    ///   atlas.
+    /// - `TextureAtlasLayout`: The texture atlas layout with the bounding
+    ///   rectangles.
     fn mapped_atlas_layout_from_char_map(
         size: UVec2,
         char_rect_map: &HashMap<char, URect>,
     ) -> (HashMap<char, usize>, TextureAtlasLayout) {
         let mut atlas_character_map = HashMap::new();
         let mut atlas_layout = TextureAtlasLayout::new_empty(size);
-        for (&c, &rect) in char_rect_map {
-            atlas_character_map.insert(c, atlas_layout.add_texture(rect));
+        for (&character, &rect) in char_rect_map {
+            atlas_character_map.insert(character, atlas_layout.add_texture(rect));
         }
 
         (atlas_character_map, atlas_layout)
     }
 
+    /// Constructs an `ImageFont` instance from a precomputed atlas layout and
+    /// character map.
+    ///
+    /// This function creates an `ImageFont` by combining the texture containing
+    /// the font, a character map that maps characters to indices, a precomputed
+    /// texture atlas layout, and an image sampler for scaling behavior.
+    ///
+    /// # Parameters
+    /// - `texture`: A handle to the texture containing the font glyphs.
+    /// - `atlas_character_map`: A map of characters to their indices in the
+    ///   texture atlas.
+    /// - `atlas_layout`: A handle to the texture atlas layout describing the
+    ///   glyph bounds.
+    /// - `image_sampler`: The image sampler used for scaling during rendering.
+    ///
+    /// # Returns
+    /// An `ImageFont` instance ready to be used for rendering text.
     fn from_mapped_atlas_layout(
         texture: Handle<Image>,
         atlas_character_map: HashMap<char, usize>,
@@ -129,9 +170,27 @@ impl ImageFont {
         }
     }
 
+    /// Filters a string to include only characters present in the font's
+    /// character map.
+    ///
+    /// This function returns a
+    /// [`FilteredString`](filtered_string::FilteredString) containing only the
+    /// characters from the input string that exist in the font's
+    /// `atlas_character_map`. It ensures that unsupported characters are
+    /// excluded during rendering.
+    ///
+    /// # Parameters
+    /// - `string`: The input string to filter.
+    ///
+    /// # Returns
+    /// A `FilteredString` returning only characters supported by the font.
+    ///
+    /// # Notes
+    /// This function requires either the `rendered` or `atlas_sprites` feature
+    /// to be enabled.
     #[cfg(any(feature = "rendered", feature = "atlas_sprites"))]
-    fn filter_string<S: AsRef<str>>(&self, s: S) -> filtered_string::FilteredString<'_, S> {
-        filtered_string::FilteredString::new(s, &self.atlas_character_map)
+    fn filter_string<S: AsRef<str>>(&self, string: S) -> filtered_string::FilteredString<'_, S> {
+        filtered_string::FilteredString::new(string, &self.atlas_character_map)
     }
 }
 
@@ -153,7 +212,10 @@ pub struct ImageFontText {
 
 /// Marks any text where the underlying [`ImageFont`] asset has changed as
 /// changed, which will cause it to be re-rendered.
-#[allow(private_interfaces)]
+#[expect(
+    private_interfaces,
+    reason = "Systems are only `pub` for the sake of allowing dependent crates to use them for ordering"
+)]
 pub fn sync_texts_with_font_changes(
     mut events: EventReader<AssetEvent<ImageFont>>,
     mut query: Query<&mut ImageFontText>,
@@ -176,14 +238,44 @@ pub fn sync_texts_with_font_changes(
     changed_fonts.clear();
 }
 
-// Helper function to extract the relevant asset ID
+/// Extracts the asset ID from an [`AssetEvent`] for an [`ImageFont`] asset.
+///
+/// This helper function processes asset events and retrieves the relevant
+/// asset ID if the event indicates that the asset was either modified or
+/// loaded. Other event types are ignored.
+///
+/// # Parameters
+/// - `event`: An [`AssetEvent`] for an [`ImageFont`] asset. This event
+///   represents changes to assets, such as when they are modified or loaded.
+///
+/// # Returns
+/// An [`Option`] containing the asset ID if the event type is `Modified` or
+/// `LoadedWithDependencies`; otherwise, `None`.
+///
+/// # Notes
+/// - This function is used to track changes to `ImageFont` assets in order to
+///   trigger updates in dependent components or systems.
+/// - The other events are irrelevant to our needs.
 #[inline]
 fn extract_asset_id(event: &AssetEvent<ImageFont>) -> Option<AssetId<ImageFont>> {
-    match event {
-        AssetEvent::Modified { id } | AssetEvent::LoadedWithDependencies { id } => Some(*id),
-        _ => None,
+    match *event {
+        AssetEvent::Modified { id } | AssetEvent::LoadedWithDependencies { id } => Some(id),
+        AssetEvent::Added { .. } | AssetEvent::Removed { .. } | AssetEvent::Unused { .. } => None,
     }
 }
 
+/// A cached set of asset IDs used for tracking changes to [`ImageFont`] assets.
+///
+/// This struct wraps a [`HashSet`] of asset IDs and is used  to temporarily
+/// store and manage asset IDs during a single update cycle. It serves as a way
+/// to avoid having to re-allocate a `HashSet` each time he sync function runs.
+///
+/// The cache is cleared at the end of each update cycle to ensure it does not
+/// persist between runs.
+///
+/// # Notes
+/// - This struct is primarily used in the [`sync_texts_with_font_changes`]
+///   system to keep track of `ImageFont` assets that have been modified or
+///   loaded.
 #[derive(Default, Deref, DerefMut)]
 struct CachedHashSet(HashSet<AssetId<ImageFont>>);

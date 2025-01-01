@@ -1,9 +1,21 @@
 //! Shows use of the plugin with `bevy_ui`.
 
-use bevy::{input::common_conditions::input_just_pressed, prelude::*};
-use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
-use bevy_image_font::{ImageFont, ImageFontPlugin, ImageFontPreRenderedUiText, ImageFontText};
+#![expect(
+    clippy::mod_module_files,
+    reason = "if present as common.rs, cargo thinks it's an example binary"
+)]
 
+use bevy::{input::common_conditions::input_just_pressed, prelude::*};
+use bevy_asset_loader::prelude::AssetCollectionApp as _;
+use bevy_image_font::{ImageFontPlugin, ImageFontPreRenderedUiText, ImageFontText};
+
+use crate::common::DemoAssets;
+
+mod common;
+
+/// Tracks the number of vows judged during the application runtime.
+///
+/// This resource is updated when the user presses the SPACE key.
 #[derive(Default, Debug, Resource)]
 struct VowsJudged(u32);
 
@@ -25,15 +37,18 @@ fn main() {
         .run();
 }
 
-#[derive(AssetCollection, Resource)]
-struct DemoAssets {
-    #[asset(path = "example_font.image_font.ron")]
-    image_font: Handle<ImageFont>,
-}
-
+/// A marker component for the UI node that displays the number of vows judged.
+///
+/// Entities with this component have their text updated dynamically based
+/// on the value of the [`VowsJudged`] resource.
 #[derive(Component)]
 struct VowsNode;
 
+/// Spawns the UI layout for the example.
+///
+/// This system creates:
+/// 1. A root node with a prompt instructing the user to press SPACE.
+/// 2. A dynamically updating node that displays the number of vows judged.
 fn spawn_ui(mut commands: Commands, assets: Res<DemoAssets>) {
     commands.spawn(Camera2d);
 
@@ -76,10 +91,18 @@ fn spawn_ui(mut commands: Commands, assets: Res<DemoAssets>) {
     ));
 }
 
+/// Increments the number of vows judged.
+///
+/// This system responds to the user pressing the SPACE key and increments
+/// the `VowsJudged` resource by one.
 fn judge(mut vows: ResMut<VowsJudged>) {
     vows.0 += 1;
 }
 
+/// Updates the text of the vows node when the number of vows judged changes.
+///
+/// This system listens for changes to the `VowsJudged` resource and updates the
+/// text displayed by the UI node marked with [`VowsNode`].
 fn update_vows_node(vows: Res<VowsJudged>, mut node: Query<&mut ImageFontText, With<VowsNode>>) {
     if vows.is_changed() {
         node.single_mut().text = format!("Vows judged: {}", vows.0);

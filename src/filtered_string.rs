@@ -1,3 +1,29 @@
+#![allow(
+    dead_code,
+    reason = "private utility code that, depending on the activated feature set, will sometimes be missing uses"
+)]
+//! A module for filtering strings based on a character map.
+//!
+//! This module provides the [`FilteredString`] type, which offers a reusable
+//! and efficient abstraction for working with strings filtered according to a
+//! predefined character map. This is particularly useful in scenarios where
+//! only a subset of characters are supported, such as rendering text with an
+//! `ImageFont`.
+//!
+//! # Key Features
+//! - **Efficient Filtering:** Filters strings without unnecessary allocations,
+//!   making it suitable for performance-sensitive contexts.
+//! - **Iterator Support:** Allows iteration over filtered characters for
+//!   further processing.
+//! - **Display Implementation:** Can be directly converted to a string
+//!   representation of the filtered content.
+//!
+//! # Usage
+//! This module is typically used in conjunction with image font rendering
+//! systems, where only characters supported by the font's atlas are allowed. It
+//! ensures unsupported characters are ignored while preserving the order of the
+//! valid characters.
+
 use std::fmt;
 
 use bevy::utils::HashMap;
@@ -10,12 +36,23 @@ use bevy::utils::HashMap;
 /// for working with filtered strings efficiently, avoiding unnecessary
 /// allocations.
 #[derive(Debug)]
-pub(crate) struct FilteredString<'s, S: AsRef<str>> {
+pub(crate) struct FilteredString<'map, S: AsRef<str>> {
+    /// The input string to be filtered.
+    ///
+    /// This string serves as the source for filtering operations. Characters
+    /// in this string are compared against the characters in
+    /// `atlas_character_map`.
     string: S,
-    atlas_character_map: &'s HashMap<char, usize>,
+
+    /// A reference to a map of characters to their indices in a texture atlas.
+    ///
+    /// This map determines which characters from `string` are retained during
+    /// filtering. Only characters present as keys in this map will be included
+    /// in the filtered output.
+    atlas_character_map: &'map HashMap<char, usize>,
 }
 
-impl<'s, S: AsRef<str>> FilteredString<'s, S> {
+impl<'map, S: AsRef<str>> FilteredString<'map, S> {
     /// Creates a new `FilteredString` instance.
     ///
     /// # Parameters
@@ -26,7 +63,7 @@ impl<'s, S: AsRef<str>> FilteredString<'s, S> {
     /// # Returns
     /// A `FilteredString` instance that can produce iterators over the filtered
     /// characters.
-    pub(crate) fn new(string: S, atlas_character_map: &'s HashMap<char, usize>) -> Self {
+    pub(crate) fn new(string: S, atlas_character_map: &'map HashMap<char, usize>) -> Self {
         Self {
             string,
             atlas_character_map,
@@ -44,7 +81,7 @@ impl<'s, S: AsRef<str>> FilteredString<'s, S> {
         self.string
             .as_ref()
             .chars()
-            .filter(|c| self.atlas_character_map.contains_key(c))
+            .filter(|character| self.atlas_character_map.contains_key(character))
     }
 
     /// Checks if the filtered string is empty.
@@ -53,16 +90,15 @@ impl<'s, S: AsRef<str>> FilteredString<'s, S> {
     /// `true` if there are no characters in the filtered string; otherwise,
     /// `false`.
     #[inline]
-    #[allow(dead_code)]
     pub(crate) fn is_empty(&self) -> bool {
         self.filtered_chars().next().is_none()
     }
 }
 
 impl<S: AsRef<str>> fmt::Display for FilteredString<'_, S> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for c in self.filtered_chars() {
-            write!(f, "{c}")?;
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for character in self.filtered_chars() {
+            write!(formatter, "{character}")?;
         }
         Ok(())
     }

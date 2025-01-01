@@ -1,12 +1,17 @@
 //! Demonstrates rendering image font text at both its 'native' height and a
 //! scaled-up height.
 
+#![expect(
+    clippy::mod_module_files,
+    reason = "if present as common.rs, cargo thinks it's an example binary"
+)]
+
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
-use bevy_asset_loader::prelude::{AssetCollection, AssetCollectionApp};
-use bevy_image_font::{ImageFont, ImageFontPlugin, ImageFontPreRenderedText, ImageFontText};
+use bevy_asset_loader::prelude::AssetCollectionApp as _;
+use bevy_image_font::{ImageFontPlugin, ImageFontPreRenderedText, ImageFontText};
 
-use crate::common::{FONT_WIDTH, TEXT};
+use crate::common::{DemoAssets, FONT_WIDTH, TEXT};
 
 mod common;
 
@@ -19,12 +24,16 @@ fn main() {
         .run();
 }
 
-#[derive(AssetCollection, Resource)]
-struct DemoAssets {
-    #[asset(path = "example_font.image_font.ron")]
-    image_font: Handle<ImageFont>,
-}
-
+/// Spawns the text entities for the example.
+///
+/// This system creates two text entities:
+/// 1. A text entity rendered at a scaled-up height for demonstration purposes.
+/// 2. A text entity rendered at its native height, demonstrating pixel-perfect
+///    alignment.
+///
+/// The first entity shows how to shift the position by 0.5 pixels to align with
+/// pixel boundaries. The second demonstrates the use of an anchor to achieve
+/// proper alignment.
 fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
     commands.spawn(Camera2d);
 
@@ -52,7 +61,11 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
             anchor: Anchor::CenterLeft,
             ..default()
         },
-        #[allow(clippy::cast_precision_loss)]
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "the magnitude of the numbers we're working on here are too small to lose \
+            anything"
+        )]
         Transform::from_translation(Vec3::new(
             -((TEXT.chars().count() * FONT_WIDTH / 2) as f32),
             40.,
