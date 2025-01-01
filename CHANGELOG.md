@@ -9,57 +9,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Introduced the `rendered` feature, allowing text rendering to `Sprite` and `ImageNode` components using `ImageFontPreRenderedText` and `ImageFontPreRenderedUiText`.
-- **`atlas_sprites` Feature**: Allows text rendering with individual sprites for each character using a texture atlas.
-  - Added `ImageFontSpriteText` component for text rendering via sprite atlases with configurable color and anchor.
-  - Added support for optional gizmo rendering via the `gizmos` feature.
-  - `atlased_sprite.rs` example: Demonstrates rendering text with the `atlas_sprites` feature.
-- Added `ImageFontLoaderSettings` for specifying a custom `ImageSampler` to be used by the font asset loader.
-- Enabled documentation for all features when building on `docs.rs` as well as enhanced documentation using the `doc_cfg` and `doc_auto_cfg` features.
+#### Features
+
+- Introduced the `rendered` feature for text rendering to `Sprite` and `ImageNode` components, using `ImageFontPreRenderedText` and `ImageFontPreRenderedUiText`.
+- Added the **`atlas_sprites`** feature to enable text rendering with individual sprites for each character via a texture atlas. Includes:
+  - `ImageFontSpriteText` component for sprite-based text rendering with configurable color and anchor.
+  - Optional gizmo rendering via the `gizmos` feature.
+- Introduced `ImageFontLoaderSettings` to allow custom `ImageSampler` specification for font asset loading.
+- Added `ImageFontTextData` for tracking sprite-entity relationships and optimizing updates.
+- Introduced a `validate` method to `ImageFontSettings` to ensure valid `image` paths and layout strings.
+
+#### Documentation
+
+- Enabled comprehensive documentation for all features on `docs.rs`, utilizing `doc_cfg` and `doc_auto_cfg` features.
 - Expanded inline documentation for:
   - `ImageFont` and its fields (`atlas_layout`, `texture`, `atlas_character_map`).
-  - `ImageFontLayout` variants, with detailed descriptions of layout methods.
-  - `ImageFontSettings`, including details on `image` paths and `layout` mappings.
-  - Error enums (`ImageFontLoadError` and `ImageFontRenderError`) with comprehensive explanations of possible errors.
-- Added detailed comments to the `AtlasSpritesPlugin` and `ImageFontSpriteText` structs to describe their functionality.
-- Added more Rust lint configuration to `Cargo.toml`.
-- Added `ImageFontTextData` to track sprite-entity relationships and optimize sprite updates.
-- Introduced a `validate` method to `ImageFontSettings` to ensure that the `image` path is non-empty and the layout string for `Automatic` is valid.
-- Added `EmptyImagePath` and `EmptyLayoutString` variants to `ImageFontLoadError` for clearer error diagnostics.
+  - `ImageFontLayout` variants and layout methods.
+  - `ImageFontSettings`, detailing paths and layout mappings.
+  - Error enums (`ImageFontLoadError` and `ImageFontRenderError`) with explanations of failure scenarios.
+- Enhanced documentation for `ImageFontPlugin`, including usage examples and feature descriptions.
+
+#### Tooling
+
+- Added stricter linting rules in `Cargo.toml` to improve code quality.
+- Added Rust lint configuration to `Cargo.toml`.
 - Added the `camino` crate (version 1.1.9) with `serde1` feature for robust UTF-8 path handling.
-- Introduced stricter linting rules in `Cargo.toml` to enforce higher code quality standards.
 
 ### Changed
 
-- Made rendering text function no longer `pub`; this is an internal implementation detail.
-- Renamed `ImageFontSpriteText` to `ImageFontPreRenderedText` and `ImageFontUiText` to `ImageFontPreRenderedUiText`.
-- Refactored text rendering systems into the `rendered` module, making them conditional on the `rendered` feature.
-- Updated `Cargo.toml` to make the `image` dependency optional, activated only with the `rendered` feature.
-- Updated `ImageFont` to include an `ImageSampler` field for enhanced texture sampling control.
-- Renamed examples for clarity with the new `atlas_sprites` feature:
-  - `sprite.rs` → `rendered_sprite.rs`
-  - `bevy_ui.rs` → `rendered_ui.rs`
-- Improved documentation for `ImageFontPlugin` to include usage examples and feature descriptions.
-- Changed `atlased_sprite.rs` to demonstrate animated text and colors.
-- Added detailed debug logs to monitor sprite creation, updates, and removals for `ImageFontSpriteText` and enhanced comments for better code clarity and maintainability.
-- Enhanced `set_up_sprites` system to update, add, or remove sprites dynamically for `ImageFontSpriteText`.
-- Replaced `PathBuf` with `Utf8PathBuf` in `ImageFontSettings` for stricter validation and compatibility with non-ASCII paths.
-- Updated error messages in `ImageFontLoader` to provide more context when paths are invalid or images fail to load.
+#### Core Library
+
 - Removed `pub use` statements for `rendered` and `atlas_sprites` modules in `src/lib.rs`:
+  - Users must now import items from these modules.
+
+#### Examples
+
 - Adjusted imports in `atlased_sprite.rs`, `rendered_sprite.rs`, and `rendered_ui.rs` to reflect the removal of `pub use` statements
+
+#### Refactoring
+
+- Refactored text rendering systems into the `rendered` module, conditional on the `rendered` feature.
+- Renamed examples for clarity:
+  - `sprite.rs` to `rendered_sprite.rs`.
+  - `bevy_ui.rs` to `rendered_ui.rs`.
+
+#### Features and APIs
+
+- Made internal rendering text function private.
+- Updated `Cargo.toml` to make the `image` dependency optional, activated only with the `rendered` feature.
+- Replaced `PathBuf` with `Utf8PathBuf` in `ImageFontSettings` for stricter validation and compatibility with non-ASCII paths.
+- Updated error messages in `ImageFontLoader` for better diagnostics.
 
 ### Fixed
 
-- Addressed inconsistencies in type annotations, parameter naming, and error handling across core systems and modules.
+- Resolved inconsistencies in type annotations, parameter naming, and error handling across core modules.
 - Corrected link to `rendered_sprite.rs` in the "Note on Pixel Accuracy" section.
 
 ### Removed
 
-- Redundant font setup logic in individual examples; replaced with reusable components in the `common` module.
+- Removed redundant font setup logic from individual examples, consolidating it into a reusable `common` module.
 
-### Notes
+### Breaking Changes
 
-- This release introduces breaking changes.
+- Renamed `ImageFontSpriteText` to `ImageFontPreRenderedText` and `ImageFontUiText` to `ImageFontPreRenderedUiText`.
 - Users of the library will need to update their import paths for components and related types from the `rendered` and `atlas_sprites` modules rather than from the root.
 
 ## [0.6.0] - 2024-12-31
