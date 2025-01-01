@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Addressed inconsistencies in type annotations, parameter naming, and error handling across core systems and modules.
+- Corrected link to `rendered_sprite.rs` in the "Note on Pixel Accuracy" section.
 
 ### Removed
 

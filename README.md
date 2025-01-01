@@ -91,7 +91,7 @@ See examples for more details:
 
 #### Note on Pixel Accuracy
 
-Bevy anchors sprites at the center by default, which may cause odd-dimensioned sprites to appear blurry. To avoid this, use non-`Center` anchors like `Anchor::TopLeft` or adjust sprite translations. Refer to the [rendered sprite example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/sprite.rs) for details.
+Bevy anchors sprites at the center by default, which may cause odd-dimensioned sprites to appear blurry. To avoid this, use non-`Center` anchors like `Anchor::TopLeft` or adjust sprite translations. Refer to the [rendered sprite example](https://github.com/ilyvion/bevy_image_font/blob/main/examples/rendered_sprite.rs) for details.
 
 ### Optional Features
 
