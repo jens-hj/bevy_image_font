@@ -9,7 +9,8 @@
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy_asset_loader::prelude::AssetCollectionApp as _;
-use bevy_image_font::{ImageFontPlugin, ImageFontPreRenderedText, ImageFontText};
+use bevy_image_font::rendered::ImageFontPreRenderedText;
+use bevy_image_font::{ImageFontPlugin, ImageFontText};
 
 use crate::common::{DemoAssets, FONT_WIDTH, TEXT};
 

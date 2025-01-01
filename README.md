@@ -59,7 +59,7 @@ Here's a minimal example of using `bevy_image_font` to render text.[^cfg] :
 use bevy::prelude::*;
 use bevy_image_font::{ImageFontPlugin, ImageFontText};
 #[cfg(feature = "atlas_sprites")]
-use bevy_image_font::ImageFontSpriteText;
+use bevy_image_font::atlas_sprites::ImageFontSpriteText;
 
 fn main() {
     App::new()

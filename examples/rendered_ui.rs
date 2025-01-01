@@ -7,7 +7,8 @@
 
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 use bevy_asset_loader::prelude::AssetCollectionApp as _;
-use bevy_image_font::{ImageFontPlugin, ImageFontPreRenderedUiText, ImageFontText};
+use bevy_image_font::rendered::ImageFontPreRenderedUiText;
+use bevy_image_font::{ImageFontPlugin, ImageFontText};
 
 use crate::common::DemoAssets;
 

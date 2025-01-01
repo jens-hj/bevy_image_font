@@ -45,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced `set_up_sprites` system to update, add, or remove sprites dynamically for `ImageFontSpriteText`.
 - Replaced `PathBuf` with `Utf8PathBuf` in `ImageFontSettings` for stricter validation and compatibility with non-ASCII paths.
 - Updated error messages in `ImageFontLoader` to provide more context when paths are invalid or images fail to load.
+- Removed `pub use` statements for `rendered` and `atlas_sprites` modules in `src/lib.rs`:
+- Adjusted imports in `atlased_sprite.rs`, `rendered_sprite.rs`, and `rendered_ui.rs` to reflect the removal of `pub use` statements
 
 ### Fixed
 
@@ -58,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 
 - This release introduces breaking changes.
+- Users of the library will need to update their import paths for components and related types from the `rendered` and `atlas_sprites` modules rather than from the root.
 
 ## [0.6.0] - 2024-12-31
 

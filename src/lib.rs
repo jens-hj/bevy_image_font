@@ -18,13 +18,9 @@ pub mod loader;
 
 #[cfg(feature = "rendered")]
 pub mod rendered;
-#[cfg(feature = "rendered")]
-pub use rendered::*;
 
 #[cfg(feature = "atlas_sprites")]
 pub mod atlas_sprites;
-#[cfg(feature = "atlas_sprites")]
-pub use atlas_sprites::*;
 
 /// A Bevy plugin for rendering image-based fonts.
 ///
@@ -70,10 +66,10 @@ impl Plugin for ImageFontPlugin {
             .add_systems(PostUpdate, sync_texts_with_font_changes);
 
         #[cfg(feature = "rendered")]
-        app.add_plugins(RenderedPlugin);
+        app.add_plugins(rendered::RenderedPlugin);
 
         #[cfg(feature = "atlas_sprites")]
-        app.add_plugins(AtlasSpritesPlugin);
+        app.add_plugins(atlas_sprites::AtlasSpritesPlugin);
     }
 }
 
