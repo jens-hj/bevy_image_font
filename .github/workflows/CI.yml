@@ -184,7 +184,7 @@ jobs:
               uses: Leafwing-Studios/cargo-cache@v2
 
             - name: Build documentation
-              run: cargo doc --verbose --no-deps --all-features --workspace
+              run: cargo doc -Zunstable-options -Zrustdoc-scrape-examples --no-deps --all-features --workspace
               env:
                   RUSTDOCFLAGS: --cfg docsrs
 

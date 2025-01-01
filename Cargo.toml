@@ -54,14 +54,17 @@ bevy_asset_loader = { version = "0.22.0", features = ["2d"] }
 [[example]]
 name = "rendered_ui"
 required-features = ["rendered", "ui"]
+doc-scrape-examples = true
 
 [[example]]
 name = "rendered_sprite"
 required-features = ["rendered"]
+doc-scrape-examples = true
 
 [[example]]
 name = "atlased_sprite"
 required-features = ["atlas_sprites"]
+doc-scrape-examples = true
 
 [lints.rust]
 absolute_paths_not_starting_with_crate = "warn"
@@ -123,3 +126,4 @@ type_complexity = "allow"
 all-features = true
 # defines the configuration attribute `docsrs`
 rustdoc-args = ["--cfg", "docsrs"]
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
