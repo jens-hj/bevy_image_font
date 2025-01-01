@@ -3,4 +3,4 @@
 set -eux
 
 # Let's make sure we don't push any broken tests
-cargo hack --feature-powerset test --exclude-features default
+cargo hack --each-feature test
