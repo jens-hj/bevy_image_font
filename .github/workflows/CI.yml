@@ -27,6 +27,9 @@ jobs:
               with:
                   submodules: true
 
+            - name: Cache the Cargo build files
+              uses: Leafwing-Studios/cargo-cache@v2
+
             - name: Cargo check
               run: cargo check --all-features
 
