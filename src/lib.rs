@@ -275,3 +275,6 @@ fn extract_asset_id(event: &AssetEvent<ImageFont>) -> Option<AssetId<ImageFont>>
 ///   loaded.
 #[derive(Default, Deref, DerefMut)]
 struct CachedHashSet(HashSet<AssetId<ImageFont>>);
+
+#[cfg(test)]
+mod tests;

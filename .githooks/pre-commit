@@ -10,3 +10,4 @@ fi
 
 cargo fmt --all --check
 cargo hack --feature-powerset clippy --all-targets --exclude-features default -- -D warnings
+cargo test --all-features
