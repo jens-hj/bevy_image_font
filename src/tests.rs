@@ -1,4 +1,8 @@
 #![allow(clippy::unwrap_used, reason = "test code panics to indicate errors")]
+
+use std::any::TypeId;
+use std::path::PathBuf;
+
 use super::*;
 
 mod sync_texts_with_font_changes;
@@ -25,4 +29,42 @@ fn mapped_atlas_layout_from_char_map_creates_correct_character_map_and_layout() 
         atlas_layout.textures[atlas_character_map[&'B']],
         char_rect_map[&'B']
     );
+}
+
+#[test]
+fn image_font_plugin_initialization() {
+    let mut app = App::new();
+
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
+    app.add_plugins(ImageFontPlugin);
+
+    // Verify that `ImageFont` is registered as an asset by attempting to load one
+    let asset_server = app.world().resource::<AssetServer>();
+    let font_path = PathBuf::from("example_font.image_font.ron");
+
+    let handle: Handle<ImageFont> = asset_server.load(font_path.clone());
+    let load_state = asset_server.get_load_state(handle.id());
+    assert!(
+        load_state.is_some(),
+        "The `ImageFontPlugin` should allow loading `.image_font.ron` files; load state was \
+        {load_state:?}, expected Some(_)."
+    );
+
+    // Verify that `ImageFont` and related types are registered with the reflection
+    // system
+    {
+        let type_registry = app.world().resource::<AppTypeRegistry>().read();
+        assert!(
+            type_registry.contains(TypeId::of::<ImageFont>()),
+            "The `ImageFontPlugin` should register `ImageFont` with the reflection system."
+        );
+        assert!(
+            type_registry.contains(TypeId::of::<ImageFontText>()),
+            "The `ImageFontPlugin` should register `ImageFontText` with the reflection system."
+        );
+    }
+
+    // Verify that the app updates without errors (systems from the plugin are
+    // functional)
+    app.update();
 }
