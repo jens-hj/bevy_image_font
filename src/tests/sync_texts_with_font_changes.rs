@@ -79,7 +79,7 @@ fn changed_after_loaded_with_dependencies_event() {
 }
 
 #[test]
-fn not_changed_after_unrelated_event() {
+fn not_changed_after_events_on_other_fonts() {
     let (mut app, mut system_state, _) = setup_app_system_state_and_entity();
 
     clear_query_state(&mut app, &mut system_state);
@@ -98,6 +98,37 @@ fn not_changed_after_unrelated_event() {
 
     // Verify the change state of the component: `is_changed` should be false after
     // `app.update()` with `AssetEvent::Modified` event on unrelated `ImageFont`.
+    with_image_font_text(&mut app, &mut system_state, |image_font_text| {
+        assert!(!image_font_text.is_added());
+        assert!(!image_font_text.is_changed());
+    });
+}
+
+#[test]
+fn not_changed_on_irrelevant_events() {
+    let (mut app, mut system_state, font_handle) = setup_app_system_state_and_entity();
+
+    clear_query_state(&mut app, &mut system_state);
+
+    app.update();
+
+    app.world_mut().send_event(AssetEvent::Added {
+        id: font_handle.id(),
+    });
+
+    app.world_mut().send_event(AssetEvent::Removed {
+        id: font_handle.id(),
+    });
+
+    app.world_mut().send_event(AssetEvent::Unused {
+        id: font_handle.id(),
+    });
+
+    app.update();
+
+    // Verify the change state of the component: `is_changed` should be false after
+    // `app.update()` with `AssetEvent`s other than `Modified` or
+    // `LoadedWithDependencies`.
     with_image_font_text(&mut app, &mut system_state, |image_font_text| {
         assert!(!image_font_text.is_added());
         assert!(!image_font_text.is_changed());
