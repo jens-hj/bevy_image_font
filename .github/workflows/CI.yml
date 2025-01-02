@@ -149,11 +149,16 @@ jobs:
             - name: Cache the Cargo build files
               uses: Leafwing-Studios/cargo-cache@v2
 
+            - name: Install cargo-hack
+              uses: taiki-e/install-action@v2
+              with:
+                  tool: cargo-hack
+
             - name: Run cargo fmt
               run: cargo fmt --all -- --check
 
             - name: Run cargo clippy
-              run: cargo clippy --all-features
+              run: cargo hack --feature-powerset clippy --all-targets --exclude-features default -- -D warnings
 
     coverage:
         name: Report coverage
