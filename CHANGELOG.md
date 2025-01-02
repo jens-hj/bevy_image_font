@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Validation and Accessors**:
+  - Introduced `ImageFontDescriptor::new` for creating validated instances.
+  - Added accessor methods (`image`, `layout`) for retrieving the values of deprecated public fields.
+  - Added `ValidationError` to `ImageFontLoadError` for encapsulating validation issues.
+
+### Changed
+
+- **Field Deprecation**:
+  - Marked `ImageFontDescriptor` fields (`image` and `layout`) as deprecated, with a plan to make them private in version 8.0.
+  - Updated documentation to guide users toward using `new`, `image`, and `layout` methods.
+
+### Deprecated
+
+- **Error Variants**:
+  - Deprecated `ImageFontLoadError::EmptyImagePath` and `ImageFontLoadError::EmptyLayoutString` in favor of the `ValidationError` variant.
+
+### Notes
+
+- These changes improve the `ImageFontDescriptor` API by moving toward an encapsulated design while maintaining backward compatibility until version 8.0.
+
 ## [0.7.0] - 2025-01-01
 
 ### Added

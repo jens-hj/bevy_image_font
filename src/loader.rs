@@ -11,7 +11,7 @@ use bevy::{
     utils::HashMap,
 };
 use bevy_image::{Image, ImageSampler, ImageSamplerDescriptor};
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -165,12 +165,37 @@ pub struct ImageFontDescriptor {
     /// The path to the image file containing the font glyphs, relative to the
     /// RON file. This should be a valid path to a texture file that can be
     /// loaded by the asset system.
+    #[deprecated(
+        since = "7.1.0",
+        note = "This field will become private in the next major version. Use `new` to create a \
+        value of this type and `image` to read the field."
+    )]
     pub image: Utf8PathBuf,
 
     /// The layout description of the font, specifying how characters map to
     /// regions within the image. This can use any of the variants provided
     /// by [`ImageFontLayout`], allowing flexible configuration.
+    #[deprecated(
+        since = "7.1.0",
+        note = "This field will become private in the next major version. Use `new` to create a \
+        value of this type and `layout` to read the field."
+    )]
     pub layout: ImageFontLayout,
+}
+
+/// Errors that can show up during validation.
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum ImageFontDescriptorValidationError {
+    /// The image path provided is empty.
+    #[error("Image path is empty.")]
+    EmptyImagePath,
+
+    /// The layout string used for automatic character placement is empty.
+    /// This error occurs when no characters are defined in the automatic layout
+    /// string.
+    #[error("Automatic layout string is empty.")]
+    EmptyLayoutString,
 }
 
 #[expect(
@@ -184,6 +209,34 @@ pub struct ImageFontDescriptor {
 pub type ImageFontSettings = ImageFontDescriptor;
 
 impl ImageFontDescriptor {
+    /// Creates a new `ImageFontDescriptor` instance with the provided image
+    /// path and font layout, performing validation to ensure the descriptor
+    /// is valid.
+    ///
+    /// # Parameters
+    /// - `image`: The path to the image file containing the font glyphs,
+    ///   relative to the RON file that described the font. This should be a
+    ///   valid path to a texture file that can be loaded by the asset system.
+    /// - `layout`: The layout description of the font, specifying how
+    ///   characters map to regions within the image. See [`ImageFontLayout`]
+    ///   for more details about the available layout configurations.
+    ///
+    /// # Returns
+    /// A new `ImageFontDescriptor` instance if validation succeeds.
+    ///
+    /// # Errors
+    /// Returns an [`ImageFontDescriptorValidationError`] if the provided values
+    /// do not pass validation.
+    #[expect(deprecated, reason = "fields are only deprecated externally")]
+    pub fn new(
+        image: Utf8PathBuf,
+        layout: ImageFontLayout,
+    ) -> Result<Self, ImageFontDescriptorValidationError> {
+        let value = Self { image, layout };
+        value.validate()?;
+        Ok(value)
+    }
+
     /// Validates the `ImageFontDescriptor` struct to ensure all required fields
     /// are populated.
     ///
@@ -203,16 +256,48 @@ impl ImageFontDescriptor {
     /// };
     /// assert!(settings.validate().is_ok());
     /// ```
-    //#[allow(clippy::result_large_err)]
-    pub fn validate(&self) -> Result<(), ImageFontLoadError> {
+    #[deprecated(
+        since = "7.1.0",
+        note = "This method will become private in the next major version. When using `new` to create a \
+        value of this type, `validate` gets invoked automatically."
+    )]
+    #[expect(deprecated, reason = "fields are only deprecated externally")]
+    pub fn validate(&self) -> Result<(), ImageFontDescriptorValidationError> {
         if self.image.as_str().trim().is_empty() {
-            return Err(ImageFontLoadError::EmptyImagePath);
+            return Err(ImageFontDescriptorValidationError::EmptyImagePath);
         }
         if matches!(self.layout, ImageFontLayout::Automatic(ref layout) if layout.trim().is_empty())
         {
-            return Err(ImageFontLoadError::EmptyLayoutString);
+            return Err(ImageFontDescriptorValidationError::EmptyLayoutString);
         }
         Ok(())
+    }
+
+    /// Gets the path to the image file containing the font glyphs.
+    ///
+    /// This is the value of the `image` field. The path is relative to the
+    /// RON file and should point to a valid texture file.
+    ///
+    /// # Returns
+    /// A reference to the `Utf8PathBuf` containing the image file path.
+    #[must_use]
+    pub fn image(&self) -> &Utf8Path {
+        #[expect(deprecated, reason = "field is only deprecated externally")]
+        &self.image
+    }
+
+    /// Gets the layout description of the font.
+    ///
+    /// This is the value of the `layout` field, which specifies how characters
+    /// map to regions within the image. See [`ImageFontLayout`] for details
+    /// about the available variants.
+    ///
+    /// # Returns
+    /// A reference to the `ImageFontLayout` describing the font layout.
+    #[must_use]
+    pub fn layout(&self) -> &ImageFontLayout {
+        #[expect(deprecated, reason = "field is only deprecated externally")]
+        &self.layout
     }
 }
 
@@ -232,12 +317,25 @@ pub enum ImageFontLoadError {
     /// The image path provided in the settings is empty. This error occurs
     /// when no valid file path is specified for the font image.
     #[error("Image path is empty.")]
+    #[deprecated(
+        since = "7.1.0",
+        note = "No longer in use and will be removed in version 8.0. Use `ValidationError` instead."
+    )]
     EmptyImagePath,
 
     /// The layout string used for automatic character placement is empty.
     /// This error occurs when no characters are defined in the layout string.
     #[error("Automatic layout string is empty.")]
+    #[deprecated(
+        since = "7.1.0",
+        note = "No longer in use and will be removed in version 8.0. Use `ValidationError` instead."
+    )]
     EmptyLayoutString,
+
+    /// A validation error occurred on the `ImageFontDescriptor`. Inspect the
+    /// value of the inner error for details.
+    #[error("Font descriptor is invalid: {0}")]
+    ValidationError(#[from] ImageFontDescriptorValidationError),
 
     /// An I/O error occurred while loading the image font. This might happen
     /// if the file cannot be accessed, is missing, or is corrupted.
@@ -311,6 +409,7 @@ impl AssetLoader for ImageFontLoader {
 
         let disk_format: ImageFontDescriptor = ron::from_str(&str)?;
 
+        #[expect(deprecated, reason = "method is only deprecated externally")]
         disk_format.validate()?;
 
         // need the image loaded immediately because we need its size
@@ -318,12 +417,12 @@ impl AssetLoader for ImageFontLoader {
             .path()
             .parent()
             .ok_or(ImageFontLoadError::MissingParentPath)?
-            .join(disk_format.image.clone());
+            .join(disk_format.image());
         let Some(mut image) = load_context
             .loader()
             .immediate()
             .with_unknown_type()
-            .load(image_path.clone())
+            .load(image_path.as_path())
             .await?
             .take::<Image>()
         else {
@@ -337,6 +436,7 @@ impl AssetLoader for ImageFontLoader {
         image.sampler = settings.image_sampler.clone();
 
         let size = image.size();
+        #[expect(deprecated, reason = "fields are only deprecated externally")]
         let char_map = disk_format.layout.into_char_map(size);
         let image_handle = load_context.add_labeled_asset(String::from("texture"), image);
 
