@@ -103,3 +103,6 @@ impl<S: AsRef<str>> fmt::Display for FilteredString<'_, S> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
