@@ -87,6 +87,57 @@ pub enum ImageFontLayout {
     Manual(HashMap<char, URect>),
 }
 
+/// Errors that can show up during validation.
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum ImageFontLayoutValidationError {
+    /// The image width does not evenly divide the character count per line.
+    ///
+    /// This error occurs when the width of the provided image is not a multiple
+    /// of the number of characters per line specified in the layout.
+    #[error(
+        "Image width {width} is not an exact multiple of per-line character count \
+    {per_line_character_count}."
+    )]
+    InvalidImageWidth {
+        /// The width of the image being validated.
+        width: u32,
+        /// The number of characters per line in the layout.
+        per_line_character_count: u32,
+    },
+
+    /// The image height does not evenly divide the number of lines.
+    ///
+    /// This error occurs when the height of the provided image is not a
+    /// multiple of the number of lines in the layout.
+    #[error("Image height {height} is not an exact multiple of line count {line_count}.")]
+    InvalidImageHeight {
+        /// The height of the image being validated.
+        height: u32,
+        /// The number of lines in the layout.
+        line_count: u32,
+    },
+
+    /// A repeated character was found in an `Automatic` layout string.
+    ///
+    /// This error occurs when the same character appears multiple times in the
+    /// layout string, leading to conflicting placement definitions.
+    #[error(
+        "The character '{character}' appears more than once. The second appearance is in the \
+        layout string at row {row}, column {column}."
+    )]
+    AutomaticRepeatedCharacter {
+        /// The row in the layout string where the repeated character is
+        /// located.
+        row: usize,
+        /// The column in the layout string where the repeated character is
+        /// located.
+        column: usize,
+        /// The character that was repeated in the layout string.
+        character: char,
+    },
+}
+
 impl ImageFontLayout {
     /// Given the image size, returns a map from each codepoint to its location.
     #[expect(
@@ -94,17 +145,21 @@ impl ImageFontLayout {
         reason = "while usize can hold more data than u32, we're working on a number here that \
         should be substantially smaller than even u32's capacity"
     )]
-    fn into_char_map(self, size: UVec2) -> HashMap<char, URect> {
+    fn into_char_map(
+        self,
+        size: UVec2,
+    ) -> Result<HashMap<char, URect>, ImageFontLayoutValidationError> {
         match self {
             ImageFontLayout::Automatic(str) => {
                 // trim() removes whitespace, which is not what we want!
                 let str = str
                     .trim_start_matches(['\r', '\n'])
                     .trim_end_matches(['\r', '\n']);
-                let mut rect_map = HashMap::new();
                 #[expect(
                     clippy::expect_used,
-                    reason = "this intentionally panics on an empty string"
+                    reason = "this intentionally panics on an empty string. Should never happen as \
+                    the ImageFontLayout should always have been validated before this method gets \
+                    called"
                 )]
                 let max_chars_per_line = str
                     .lines()
@@ -115,42 +170,54 @@ impl ImageFontLayout {
                     as u32;
 
                 if size.x % max_chars_per_line != 0 {
-                    warn!(
-                        "image width {} is not an exact multiple of character count {}",
-                        size.x, max_chars_per_line
-                    );
+                    return Err(ImageFontLayoutValidationError::InvalidImageWidth {
+                        width: size.x,
+                        per_line_character_count: max_chars_per_line,
+                    });
                 }
                 let line_count = str.lines().count() as u32;
                 if size.y % line_count != 0 {
-                    warn!(
-                        "image height {} is not an exact multiple of character count {}",
-                        size.y, line_count
-                    );
+                    return Err(ImageFontLayoutValidationError::InvalidImageHeight {
+                        height: size.y,
+                        line_count,
+                    });
                 }
+
+                let mut rect_map =
+                    HashMap::with_capacity((max_chars_per_line * line_count) as usize);
 
                 let rect_width = size.x / max_chars_per_line;
                 let rect_height = size.y / line_count;
 
                 for (row, line) in str.lines().enumerate() {
-                    for (col, char) in line.chars().enumerate() {
+                    for (column, character) in line.chars().enumerate() {
                         let rect = URect::new(
-                            rect_width * col as u32,
+                            rect_width * column as u32,
                             rect_height * row as u32,
-                            rect_width * (col + 1) as u32,
+                            rect_width * (column + 1) as u32,
                             rect_height * (row + 1) as u32,
                         );
-                        rect_map.insert(char, rect);
+                        if rect_map.insert(character, rect).is_some() {
+                            return Err(
+                                ImageFontLayoutValidationError::AutomaticRepeatedCharacter {
+                                    row,
+                                    column,
+                                    character,
+                                },
+                            );
+                        }
                     }
                 }
-                rect_map
+
+                Ok(rect_map)
             }
-            ImageFontLayout::ManualMonospace { size, coords } => coords
+            ImageFontLayout::ManualMonospace { size, coords } => Ok(coords
                 .into_iter()
                 .map(|(character, top_left)| {
                     (character, URect::from_corners(top_left, size + top_left))
                 })
-                .collect(),
-            ImageFontLayout::Manual(urect_map) => urect_map,
+                .collect()),
+            ImageFontLayout::Manual(urect_map) => Ok(urect_map),
         }
     }
 }
@@ -335,7 +402,12 @@ pub enum ImageFontLoadError {
     /// A validation error occurred on the `ImageFontDescriptor`. Inspect the
     /// value of the inner error for details.
     #[error("Font descriptor is invalid: {0}")]
-    ValidationError(#[from] ImageFontDescriptorValidationError),
+    DescriptorValidationError(#[from] ImageFontDescriptorValidationError),
+
+    /// A validation error occurred on the `ImageFontDescriptor`. Inspect the
+    /// value of the inner error for details.
+    #[error("Font layout is invalid: {0}")]
+    LayoutValidationError(#[from] ImageFontLayoutValidationError),
 
     /// An I/O error occurred while loading the image font. This might happen
     /// if the file cannot be accessed, is missing, or is corrupted.
@@ -437,7 +509,7 @@ impl AssetLoader for ImageFontLoader {
 
         let size = image.size();
         #[expect(deprecated, reason = "fields are only deprecated externally")]
-        let char_map = disk_format.layout.into_char_map(size);
+        let char_map = disk_format.layout.into_char_map(size)?;
         let image_handle = load_context.add_labeled_asset(String::from("texture"), image);
 
         let (map, layout) = ImageFont::mapped_atlas_layout_from_char_map(size, &char_map);
@@ -456,3 +528,6 @@ impl AssetLoader for ImageFontLoader {
         &["image_font.ron"]
     }
 }
+
+#[cfg(test)]
+mod tests;
