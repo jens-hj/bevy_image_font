@@ -161,8 +161,7 @@ impl ImageFontLayout {
 ///
 /// [the example font's RON asset](https://github.com/ilyvion/bevy_image_font/blob/main/assets/example_font.image_font.ron)
 #[derive(Debug, Serialize, Deserialize)]
-// TODO: Rename to ImageFontDescriptor
-pub struct ImageFontSettings {
+pub struct ImageFontDescriptor {
     /// The path to the image file containing the font glyphs, relative to the
     /// RON file. This should be a valid path to a texture file that can be
     /// loaded by the asset system.
@@ -174,8 +173,18 @@ pub struct ImageFontSettings {
     pub layout: ImageFontLayout,
 }
 
-impl ImageFontSettings {
-    /// Validates the `ImageFontSettings` struct to ensure all required fields
+#[expect(
+    missing_docs,
+    reason = "temporary type alias for a deprecated, renamed type"
+)]
+#[deprecated(
+    since = "7.1.0",
+    note = "ImageFontSettings was renamed to ImageFontDescriptor and will be removed in version 8.0"
+)]
+pub type ImageFontSettings = ImageFontDescriptor;
+
+impl ImageFontDescriptor {
+    /// Validates the `ImageFontDescriptor` struct to ensure all required fields
     /// are populated.
     ///
     /// # Errors
@@ -186,9 +195,9 @@ impl ImageFontSettings {
     /// # Example
     /// ```rust
     /// # use camino::Utf8PathBuf;
-    /// # use bevy_image_font::loader::{ImageFontLayout, ImageFontSettings};
+    /// # use bevy_image_font::loader::{ImageFontLayout, ImageFontDescriptor};
     ///
-    /// let settings = ImageFontSettings {
+    /// let settings = ImageFontDescriptor {
     ///     image: Utf8PathBuf::from("path/to/font.png"),
     ///     layout: ImageFontLayout::Automatic("ABCDEF".into()),
     /// };
@@ -300,7 +309,7 @@ impl AssetLoader for ImageFontLoader {
         let mut str = String::new();
         reader.read_to_string(&mut str).await?;
 
-        let disk_format: ImageFontSettings = ron::from_str(&str)?;
+        let disk_format: ImageFontDescriptor = ron::from_str(&str)?;
 
         disk_format.validate()?;
 
