@@ -404,7 +404,7 @@ pub enum ImageFontLoadError {
     #[error("Font descriptor is invalid: {0}")]
     DescriptorValidationError(#[from] ImageFontDescriptorValidationError),
 
-    /// A validation error occurred on the `ImageFontDescriptor`. Inspect the
+    /// A validation error occurred on the `ImageFontLayout`. Inspect the
     /// value of the inner error for details.
     #[error("Font layout is invalid: {0}")]
     LayoutValidationError(#[from] ImageFontLayoutValidationError),
