@@ -235,7 +235,7 @@ pub struct ImageFontDescriptor {
     #[deprecated(
         since = "7.1.0",
         note = "This field will become private in the next major version. Use `new` to create a \
-        value of this type and `image` to read the field."
+        value of this type and the `image` function to read the field."
     )]
     pub image: Utf8PathBuf,
 
@@ -245,7 +245,7 @@ pub struct ImageFontDescriptor {
     #[deprecated(
         since = "7.1.0",
         note = "This field will become private in the next major version. Use `new` to create a \
-        value of this type and `layout` to read the field."
+        value of this type and the `layout` function to read the field."
     )]
     pub layout: ImageFontLayout,
 }
