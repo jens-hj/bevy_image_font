@@ -10,9 +10,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Validation and Accessors**:
+
   - Introduced `ImageFontDescriptor::new` for creating validated instances.
   - Added accessor methods (`image`, `layout`) for retrieving the values of deprecated public fields.
   - Added `ValidationError` to `ImageFontLoadError` for encapsulating validation issues.
+
+- **Core System Tests**:
+
+  - Added tests for the `sync_texts_with_font_changes` system to validate:
+    - Correct handling of `AssetEvent` variants.
+    - Accurate change detection for `ImageFontText` components when their respective `ImageFont` is changed.
+
+- **Component and Layout Tests**:
+
+  - Introduced test modules for `ImageFontDescriptor` and `ImageFontLayout`:
+    - Verified `ImageFontDescriptor::new` creation and validation logic.
+    - Tested `ImageFontLayout`'s character map generation for all layout types (`Automatic`, `Manual`, `ManualMonospace`).
+    - Added tests for edge cases like repeated characters and invalid image dimensions.
+
+- **Loader Tests**:
+
+  - Comprehensive coverage for `ImageFontLoader` functionality:
+    - Validated `read_and_validate_font_descriptor` for proper descriptor parsing and validation.
+    - Ensured `descriptor_to_character_map_and_layout` handles both valid and invalid inputs.
+
+- **Integration Tests**:
+
+  - Verified the behavior of `ImageFontPlugin` integration with the Bevy framework:
+    - Tested asset loading setup.
+    - Confirmed correct registration of `ImageFont` and `ImageFontText` types with the reflection system.
+  - Ensured correctness of `ImageFont::filter_string` and its integration with layout character maps.
 
 ### Changed
 

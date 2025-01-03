@@ -68,3 +68,9 @@ fn image_font_plugin_initialization() {
     // functional)
     app.update();
 }
+
+// This is mostly here for the sake of coverage.
+#[test]
+fn creating_image_font_works() {
+    ImageFont::from_mapped_atlas_layout(default(), default(), default(), default());
+}

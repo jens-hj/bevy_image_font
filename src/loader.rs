@@ -6,7 +6,7 @@ use std::io::Error as IoError;
 use std::path::PathBuf;
 
 use bevy::{
-    asset::{io::Reader, AssetLoader, AsyncReadExt as _, LoadContext, LoadDirectError},
+    asset::{io::Reader, AssetLoader, LoadContext, LoadDirectError},
     prelude::*,
     utils::HashMap,
 };
@@ -145,7 +145,7 @@ impl ImageFontLayout {
         reason = "while usize can hold more data than u32, we're working on a number here that \
         should be substantially smaller than even u32's capacity"
     )]
-    fn into_char_map(
+    fn into_character_rect_map(
         self,
         size: UVec2,
     ) -> Result<HashMap<char, URect>, ImageFontLayoutValidationError> {
@@ -470,26 +470,23 @@ impl AssetLoader for ImageFontLoader {
 
     type Error = ImageFontLoadError;
 
+    // NOTE: Until I or someone else thinks of a way to reliably run `AssetLoaders`
+    //       in a unit test, parts of this method will unfortunately remain
+    //       uncovered by tests.
     async fn load(
         &self,
         reader: &mut dyn Reader,
         settings: &Self::Settings,
         load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
-        let mut str = String::new();
-        reader.read_to_string(&mut str).await?;
-
-        let disk_format: ImageFontDescriptor = ron::from_str(&str)?;
-
-        #[expect(deprecated, reason = "method is only deprecated externally")]
-        disk_format.validate()?;
+        let font_descriptor = read_and_validate_font_descriptor(reader).await?;
 
         // need the image loaded immediately because we need its size
         let image_path = load_context
             .path()
             .parent()
             .ok_or(ImageFontLoadError::MissingParentPath)?
-            .join(disk_format.image());
+            .join(font_descriptor.image());
         let Some(mut image) = load_context
             .loader()
             .immediate()
@@ -506,18 +503,17 @@ impl AssetLoader for ImageFontLoader {
         };
 
         image.sampler = settings.image_sampler.clone();
-
         let size = image.size();
-        #[expect(deprecated, reason = "fields are only deprecated externally")]
-        let char_map = disk_format.layout.into_char_map(size)?;
-        let image_handle = load_context.add_labeled_asset(String::from("texture"), image);
 
-        let (map, layout) = ImageFont::mapped_atlas_layout_from_char_map(size, &char_map);
+        let (atlas_character_map, layout) =
+            descriptor_to_character_map_and_layout(font_descriptor, size)?;
+
+        let image_handle = load_context.add_labeled_asset(String::from("texture"), image);
         let layout_handle = load_context.add_labeled_asset(String::from("layout"), layout);
 
         let image_font = ImageFont::from_mapped_atlas_layout(
             image_handle,
-            map,
+            atlas_character_map,
             layout_handle,
             settings.image_sampler.clone(),
         );
@@ -527,6 +523,75 @@ impl AssetLoader for ImageFontLoader {
     fn extensions(&self) -> &[&str] {
         &["image_font.ron"]
     }
+}
+
+/// Reads and validates an `ImageFontDescriptor` from a reader.
+///
+/// This function reads the entirety of the data provided by the `reader`,
+/// deserializes it into an `ImageFontDescriptor`, and performs validation
+/// to ensure the descriptor is valid.
+///
+/// # Parameters
+/// - `reader`: A mutable reference to an object implementing the [`Reader`]
+///   trait. This reader provides the serialized data for the font descriptor.
+///
+/// # Returns
+/// A `Result` containing either a valid `ImageFontDescriptor` or an error if
+/// reading, deserialization, or validation fails.
+///
+/// # Errors
+/// Returns an error in the following cases:
+/// - If reading from the `reader` fails.
+/// - If the data cannot be deserialized into an `ImageFontDescriptor`.
+/// - If the resulting `ImageFontDescriptor` does not pass validation.
+async fn read_and_validate_font_descriptor(
+    reader: &mut dyn Reader,
+) -> Result<ImageFontDescriptor, ImageFontLoadError> {
+    // Read data
+    let mut data = Vec::new();
+    reader.read_to_end(&mut data).await?;
+
+    // Deserialize into ImageFontDescriptor and validate
+    let font_descriptor: ImageFontDescriptor = ron::de::from_bytes(&data)?;
+    #[expect(deprecated, reason = "method is only deprecated externally")]
+    font_descriptor.validate()?;
+
+    Ok(font_descriptor)
+}
+
+/// Converts an `ImageFontDescriptor` into a character map and texture atlas
+/// layout.
+///
+/// This function processes the given `ImageFontDescriptor` to generate a
+/// character-to-index map and a [`TextureAtlasLayout`], based on the provided
+/// image size. It uses the descriptor's layout information to map characters to
+/// specific regions within the texture atlas.
+///
+/// # Parameters
+/// - `font_descriptor`: The `ImageFontDescriptor` containing the layout.
+/// - `image_size`: A [`UVec2`] representing the dimensions of the image
+///   containing the font glyphs.
+///
+/// # Returns
+/// A tuple where
+/// - the first element is a `HashMap<char, usize>` mapping characters to
+///   indices in the texture atlas.
+/// - the second element is a [`TextureAtlasLayout`] describing the texture
+///   atlas layout.
+///
+/// # Errors
+/// This function will return an [`ImageFontLoadError`] in the following cases:
+/// - If there are any validation errors in the layout. See
+///   [`ImageFontLayoutValidationError`] for details.
+fn descriptor_to_character_map_and_layout(
+    font_descriptor: ImageFontDescriptor,
+    image_size: UVec2,
+) -> Result<(HashMap<char, usize>, TextureAtlasLayout), ImageFontLoadError> {
+    #[expect(deprecated, reason = "fields are only deprecated externally")]
+    let rect_character_map = font_descriptor.layout.into_character_rect_map(image_size)?;
+    let (atlas_character_map, layout) =
+        ImageFont::mapped_atlas_layout_from_char_map(image_size, &rect_character_map);
+    Ok((atlas_character_map, layout))
 }
 
 #[cfg(test)]
