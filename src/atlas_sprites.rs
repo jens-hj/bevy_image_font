@@ -127,8 +127,10 @@ pub fn set_up_sprites(
         };
 
         let text = image_font.filter_string(&image_font_text.text);
-        let (total_width, max_height) = calculate_text_dimensions(&text, layout, image_font);
+        let max_height = calculate_text_height(&text, layout, image_font);
         let scale = calculate_scale(image_font_text.font_height, max_height);
+        let total_width =
+            calculate_text_width(image_font_text, image_font, layout, &text, max_height);
         let anchors = calculate_anchors(image_font_sprite_text.anchor);
 
         let font_assets = FontAssets {
@@ -210,10 +212,10 @@ fn fetch_assets<'assets>(
     Some((image_font, layout))
 }
 
-/// Calculates the total width and maximum height of the filtered text.
+/// Calculates the maximum height of the filtered text.
 ///
 /// Iterates over the filtered text characters to determine the overall
-/// dimensions based on glyph sizes in the texture atlas.
+/// height based on glyph sizes in the texture atlas.
 ///
 /// # Parameters
 /// - `text`: The filtered text to measure.
@@ -221,23 +223,65 @@ fn fetch_assets<'assets>(
 /// - `image_font`: The font asset mapping characters to glyph indices.
 ///
 /// # Returns
-/// A tuple `(total_width, max_height)` representing the text dimensions.
+/// The height of the tallest glyph
 #[inline]
-fn calculate_text_dimensions(
+fn calculate_text_height(
     text: &filtered_string::FilteredString<'_, impl AsRef<str>>,
     layout: &TextureAtlasLayout,
     image_font: &ImageFont,
-) -> (u32, u32) {
-    let mut total_width = 0;
+) -> u32 {
     let mut max_height = 1;
 
     for character in text.filtered_chars() {
         let rect = layout.textures[image_font.atlas_character_map[&character]];
-        total_width += rect.width();
         max_height = max_height.max(rect.height());
     }
 
-    (total_width, max_height)
+    max_height
+}
+
+/// Calculates the total width of the rendered text based on the given font and
+/// layout.
+///
+/// This function iterates through the filtered characters of the text and sums
+/// their scaled widths to determine the total width of the text when rendered.
+///
+/// # Parameters
+/// - `image_font_text`: The [`ImageFontText`] component containing the font
+///   height and text to be rendered.
+/// - `image_font`: The [`ImageFont`] asset that maps characters to glyph
+///   indices.
+/// - `layout`: The [`TextureAtlasLayout`] defining the bounding rectangles for
+///   each glyph.
+/// - `text`: The filtered string representing the text to render, excluding
+///   unsupported characters.
+/// - `max_height`: The maximum glyph height in the text, used to calculate
+///   scaling factors.
+///
+/// # Returns
+/// The total width of the rendered text, in pixels, after applying the scaling
+/// factor.
+///
+/// # Panics
+/// This function assumes that all characters in `text` exist in the
+/// `image_font`'s atlas and that `max_height` is non-zero. If this assumption
+/// is violated, it may panic.
+#[inline]
+fn calculate_text_width(
+    image_font_text: &ImageFontText,
+    image_font: &ImageFont,
+    layout: &TextureAtlasLayout,
+    text: &filtered_string::FilteredString<'_, &String>,
+    max_height: u32,
+) -> u32 {
+    let mut total_width = 0;
+
+    for character in text.filtered_chars() {
+        let rect = layout.textures[image_font.atlas_character_map[&character]];
+        let (width, _) = compute_dimensions(rect, image_font_text.font_height, max_height);
+        total_width += width;
+    }
+    total_width
 }
 
 /// Computes the uniform scaling factor for text glyphs.
@@ -278,7 +322,7 @@ fn calculate_anchors(anchor: Anchor) -> Anchors {
     let anchor_vec = anchor.as_vec();
     Anchors {
         whole: -(anchor_vec + Vec2::new(0.5, 0.0)),
-        individual: -anchor_vec,
+        individual: Vec2::new(0.5, 0.0),
     }
 }
 
@@ -443,7 +487,7 @@ fn compute_transform(
 ) -> Transform {
     Transform::from_translation(Vec3::new(
         x_pos as f32
-            + total_width as f32 * anchor_vec_whole.x * scale.x
+            + total_width as f32 * anchor_vec_whole.x
             + width as f32 * anchor_vec_individual.x,
         max_height as f32 * anchor_vec_whole.y * scale.y,
         0.0,
@@ -706,6 +750,11 @@ pub fn render_sprite_gizmos(
                         image_font_gizmo_data.height as f32,
                     ),
                     css::PURPLE,
+                );
+                gizmos.cross_2d(
+                    Isometry2d::from_translation(child_global_transform.translation().truncate()),
+                    5.,
+                    css::GREEN,
                 );
             }
         }

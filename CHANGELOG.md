@@ -44,8 +44,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Field Deprecation**:
+
   - Marked `ImageFontDescriptor` fields (`image` and `layout`) as deprecated, with a plan to make them private in version 8.0.
   - Updated documentation to guide users toward using `new`, `image`, and `layout` methods.
+
+- **Gizmo Debugging**:
+
+  - Added green cross markers to `render_sprite_gizmos` for enhanced visual debugging of sprite positions.
+
+### Fixed
+
+- Resolved an issue where incorrect width and anchor calculations caused text misalignment ([#10]).
+
+[#10]: https://github.com/ilyvion/bevy_image_font/issues/10
 
 ### Deprecated
 
