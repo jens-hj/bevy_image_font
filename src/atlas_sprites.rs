@@ -46,6 +46,14 @@ impl Plugin for AtlasSpritesPlugin {
 }
 
 /// Text rendered using an [`ImageFont`] as individual sprites.
+///
+/// This struct provides fields for customizing text rendering, such as
+/// alignment, color, and scaling behavior.
+///
+/// - `anchor`: Specifies the alignment point of the text relative to its
+///   position.
+/// - `color`: Uniform tint applied to all glyphs.
+/// - `scaling_mode`: Controls how scaling is applied to glyph dimensions.
 #[derive(Debug, Clone, Reflect, Default, Component, Setters)]
 #[setters(into)]
 #[require(ImageFontText, Visibility)]
@@ -57,6 +65,54 @@ pub struct ImageFontSpriteText {
     /// The color applied to the rendered text. This color affects all glyphs
     /// equally, allowing you to tint the text uniformly.
     pub color: Color,
+
+    /// Determines how scaling is applied to the glyph dimensions when adjusting
+    /// them to match the desired font height.
+    ///
+    /// This field allows control over how fractional scaling values are
+    /// handled, using the [`ScalingMode`] enum. It provides options to
+    /// truncate, round, or retain precise fractional values, depending on
+    /// your rendering requirements.
+    ///
+    /// The default value is `ScalingMode::Rounded`.
+    pub scaling_mode: ScalingMode,
+}
+
+/// Determines how scaling is applied when calculating the dimensions of a
+/// character glyph.
+///
+/// This enum is used to control how fractional values are handled when scaling
+/// glyph dimensions to fit a specified font height. It provides options for
+/// truncating, rounding, or retaining precise values, offering flexibility
+/// based on the rendering requirements.
+#[derive(Debug, Clone, Copy, Reflect, Default)]
+pub enum ScalingMode {
+    /// Truncates fractional values during scaling.
+    ///
+    /// This mode ensures that the width and height of the glyph are always
+    /// rounded down to the nearest whole number. It can be useful for
+    /// pixel-perfect rendering where fractional dimensions could cause
+    /// visual artifacts.
+    Truncated,
+
+    /// Rounds fractional values during scaling.
+    ///
+    /// This mode rounds the width and height of the glyph to the nearest whole
+    /// number. It offers a balance between precision and consistency, often
+    /// used when slight inaccuracies are acceptable but extreme rounding
+    /// errors need to be avoided.
+    ///
+    /// This is the default scaling mode.
+    #[default]
+    Rounded,
+
+    /// Retains precise fractional values during scaling.
+    ///
+    /// This mode avoids rounding entirely, keeping the scaled dimensions as
+    /// floating-point values. It is ideal for high-precision rendering or
+    /// cases where exact scaling is necessary, such as when performing
+    /// sub-pixel positioning.
+    Smooth,
 }
 
 #[derive(Debug, Clone, Default, Component)]
@@ -72,11 +128,11 @@ struct ImageFontTextData {
 pub struct ImageFontGizmoData {
     /// The width of the gizmo, representing the rendered font's bounding box
     /// or visualized area in the scene.
-    width: u32,
+    width: f32,
 
     /// The height of the gizmo, representing the rendered font's bounding box
     /// or visualized area in the scene.
-    height: u32,
+    height: f32,
 }
 
 /// System that renders each [`ImageFontText`] as child [`Sprite`] entities
@@ -134,8 +190,14 @@ pub fn set_up_sprites(
         let text = image_font.filter_string(&image_font_text.text);
         let max_height = calculate_text_height(&text, layout, image_font);
         let scale = calculate_scale(image_font_text.font_height, max_height);
-        let total_width =
-            calculate_text_width(image_font_text, image_font, layout, &text, max_height);
+        let total_width = calculate_text_width(
+            image_font_text,
+            image_font_sprite_text.scaling_mode,
+            image_font,
+            layout,
+            &text,
+            max_height,
+        );
         let anchors = calculate_anchors(image_font_sprite_text.anchor);
 
         let font_assets = FontAssets {
@@ -254,6 +316,8 @@ fn calculate_text_height(
 /// # Parameters
 /// - `image_font_text`: The [`ImageFontText`] component containing the font
 ///   height and text to be rendered.
+/// - `scaling_mode`: Determines how fractional widths are handled (truncated,
+///   rounded, or precise).
 /// - `image_font`: The [`ImageFont`] asset that maps characters to glyph
 ///   indices.
 /// - `layout`: The [`TextureAtlasLayout`] defining the bounding rectangles for
@@ -274,16 +338,18 @@ fn calculate_text_height(
 #[inline]
 fn calculate_text_width(
     image_font_text: &ImageFontText,
+    scaling_mode: ScalingMode,
     image_font: &ImageFont,
     layout: &TextureAtlasLayout,
     text: &filtered_string::FilteredString<'_, &String>,
     max_height: u32,
-) -> u32 {
-    let mut total_width = 0;
+) -> f32 {
+    let mut total_width = 0.;
 
     for character in text.filtered_chars() {
         let rect = layout.textures[image_font.atlas_character_map[&character]];
-        let (width, _) = compute_dimensions(rect, image_font_text.font_height, max_height);
+        let (width, _) =
+            compute_dimensions(rect, image_font_text.font_height, max_height, scaling_mode);
         total_width += width;
     }
     total_width
@@ -357,7 +423,7 @@ fn update_existing_sprites(
     sprite_layout: &SpriteLayout,
     font_text: &ImageFontText,
     sprite_text: &ImageFontSpriteText,
-) -> u32 {
+) -> f32 {
     let SpriteLayout {
         max_height,
         total_width,
@@ -379,7 +445,7 @@ fn update_existing_sprites(
         ..
     } = *sprite_context;
 
-    let mut x_pos = 0;
+    let mut x_pos = 0.;
 
     for (sprite_entity, character) in image_font_text_data
         .sprites
@@ -414,7 +480,12 @@ fn update_existing_sprites(
         sprite.color = sprite_text.color;
 
         let rect = layout.textures[image_font.atlas_character_map[&character]];
-        let (width, _height) = compute_dimensions(rect, font_text.font_height, max_height);
+        let (width, _height) = compute_dimensions(
+            rect,
+            font_text.font_height,
+            max_height,
+            sprite_text.scaling_mode,
+        );
 
         *transform = compute_transform(
             x_pos,
@@ -460,6 +531,8 @@ fn update_existing_sprites(
 ///   height.
 /// - `max_height`: The maximum glyph height in the text, used to calculate the
 ///   scaling factor when `font_height` is provided.
+/// - `scaling_mode`: Specifies how scaling is applied (e.g., truncation,
+///   rounding, or precise).
 ///
 /// # Returns
 /// A tuple `(width, height)` representing the scaled or raw dimensions of the
@@ -470,18 +543,29 @@ fn update_existing_sprites(
 /// provided. If `max_height` is zero, behavior is undefined and may result in a
 /// panic.
 #[expect(
-    clippy::cast_possible_truncation,
     clippy::cast_precision_loss,
     reason = "the magnitude of the numbers we're working on here are too small to lose anything"
 )]
-#[expect(clippy::cast_sign_loss, reason = "we're working on unsigned values")]
 #[inline]
-fn compute_dimensions(rect: URect, font_height: Option<f32>, max_height: u32) -> (u32, u32) {
-    font_height.map_or((rect.width(), rect.height()), |fh| {
-        (
-            (rect.width() as f32 * fh / max_height as f32) as u32,
-            (rect.height() as f32 * fh / max_height as f32) as u32,
-        )
+fn compute_dimensions(
+    rect: URect,
+    font_height: Option<f32>,
+    max_height: u32,
+    scaling_mode: ScalingMode,
+) -> (f32, f32) {
+    let width = rect.width() as f32;
+    let height = rect.height() as f32;
+    let max_height = max_height as f32;
+    font_height.map_or((width, height), |fh| match scaling_mode {
+        ScalingMode::Truncated => (
+            (width * fh / max_height).trunc(),
+            (height * fh / max_height).trunc(),
+        ),
+        ScalingMode::Rounded => (
+            (width * fh / max_height).round(),
+            (height * fh / max_height).round(),
+        ),
+        ScalingMode::Smooth => ((width * fh / max_height), (height * fh / max_height)),
     })
 }
 
@@ -508,18 +592,16 @@ fn compute_dimensions(rect: URect, font_height: Option<f32>, max_height: u32) ->
 )]
 #[inline]
 fn compute_transform(
-    x_pos: u32,
-    total_width: u32,
-    width: u32,
+    x_pos: f32,
+    total_width: f32,
+    width: f32,
     max_height: u32,
     scale: Vec3,
     anchor_vec_whole: Vec2,
     anchor_vec_individual: Vec2,
 ) -> Transform {
     Transform::from_translation(Vec3::new(
-        x_pos as f32
-            + total_width as f32 * anchor_vec_whole.x
-            + width as f32 * anchor_vec_individual.x,
+        x_pos + total_width * anchor_vec_whole.x + width * anchor_vec_individual.x,
         max_height as f32 * anchor_vec_whole.y * scale.y,
         0.0,
     ))
@@ -541,7 +623,7 @@ fn compute_transform(
 /// - `sprite_text`: Component defining text appearance (e.g., color).
 #[inline]
 fn adjust_sprite_count(
-    x_pos: u32,
+    x_pos: f32,
     commands: &mut Commands,
     sprite_context: &mut SpriteContext<impl AsRef<str>>,
     font_assets: &FontAssets,
@@ -613,7 +695,7 @@ fn remove_excess_sprites(
 /// New sprites are spawned as children of the entity, and the sprite data is
 /// updated.
 fn add_missing_sprites(
-    mut x_pos: u32,
+    mut x_pos: f32,
     commands: &mut Commands,
     sprite_context: &mut SpriteContext<impl AsRef<str>>,
     font_assets: &FontAssets,
@@ -648,8 +730,12 @@ fn add_missing_sprites(
     commands.entity(entity).with_children(|parent| {
         for character in text.filtered_chars().skip(current_sprite_count) {
             let rect = layout.textures[image_font.atlas_character_map[&character]];
-            let (width, _height) =
-                compute_dimensions(rect, image_font_text.font_height, max_height);
+            let (width, _height) = compute_dimensions(
+                rect,
+                image_font_text.font_height,
+                max_height,
+                sprite_text.scaling_mode,
+            );
 
             let transform = compute_transform(
                 x_pos,
@@ -660,6 +746,8 @@ fn add_missing_sprites(
                 anchor_vec_whole,
                 anchor_vec_individual,
             );
+
+            debug!("Rendering {character} @ {x_pos} with size {width}");
 
             x_pos += width;
 
@@ -702,7 +790,7 @@ struct SpriteLayout {
     /// Maximum glyph height in the text.
     max_height: u32,
     /// Total width of the text.
-    total_width: u32,
+    total_width: f32,
     /// Scaling factor applied to glyph dimensions.
     scale: Vec3,
     /// Precomputed anchor offsets for alignment.
@@ -758,11 +846,6 @@ struct SpriteContext<'data, S: AsRef<str>> {
 /// ### Notes
 /// This function is enabled only when the `gizmos` feature is active and
 /// leverages the Bevy gizmo system for runtime visualization.
-#[expect(
-    clippy::cast_precision_loss,
-    reason = "the magnitude of the numbers we're working on here are too small to lose \
-    anything"
-)]
 #[cfg(feature = "gizmos")]
 pub fn render_sprite_gizmos(
     mut gizmos: Gizmos,
@@ -776,10 +859,7 @@ pub fn render_sprite_gizmos(
             if let Ok((child_global_transform, image_font_gizmo_data)) = child_query.get(child) {
                 gizmos.rect_2d(
                     Isometry2d::from_translation(child_global_transform.translation().truncate()),
-                    Vec2::new(
-                        image_font_gizmo_data.width as f32,
-                        image_font_gizmo_data.height as f32,
-                    ),
+                    Vec2::new(image_font_gizmo_data.width, image_font_gizmo_data.height),
                     css::PURPLE,
                 );
                 gizmos.cross_2d(

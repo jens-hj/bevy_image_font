@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Scaling Customization**:
+
+  - Introduced the `ScalingMode` enum with options (`Truncated`, `Rounded`, `Smooth`) for controlling glyph scaling behavior in text rendering.
+  - Enabled support for floating-point glyph dimensions to allow sub-pixel rendering.
+
+### Changed
+
+- **Rendering Precision**:
+
+  - Replaced integer-based scaling (`u32`) with floating-point calculations (`f32`) to improve rendering precision.
+  - Refactored text rendering logic to integrate the `ScalingMode` enum.
+
 ## [0.7.1] - 2025-01-24
 
 ### Added
