@@ -103,7 +103,12 @@ pub fn set_up_sprites(
         ),
         Or<(Changed<ImageFontText>, Changed<ImageFontSpriteText>)>,
     >,
-    mut child_query: Query<(&mut Sprite, &mut Transform)>,
+    #[cfg(not(feature = "gizmos"))] mut child_query: Query<(&mut Sprite, &mut Transform)>,
+    #[cfg(feature = "gizmos")] mut child_query: Query<(
+        &mut Sprite,
+        &mut Transform,
+        &mut ImageFontGizmoData,
+    )>,
     image_fonts: Res<Assets<ImageFont>>,
     texture_atlas_layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
@@ -341,7 +346,12 @@ fn calculate_anchors(anchor: Anchor) -> Anchors {
 /// # Returns
 /// The x-position to the right of the last processed sprite.
 fn update_existing_sprites(
-    child_query: &mut Query<(&mut Sprite, &mut Transform)>,
+    #[cfg(not(feature = "gizmos"))] child_query: &mut Query<(&mut Sprite, &mut Transform)>,
+    #[cfg(feature = "gizmos")] child_query: &mut Query<(
+        &mut Sprite,
+        &mut Transform,
+        &mut ImageFontGizmoData,
+    )>,
     sprite_context: &mut SpriteContext<impl AsRef<str>>,
     font_assets: &FontAssets,
     sprite_layout: &SpriteLayout,
@@ -377,7 +387,17 @@ fn update_existing_sprites(
         .copied()
         .zip(text.filtered_chars())
     {
+        #[cfg(not(feature = "gizmos"))]
         let (mut sprite, mut transform) = match child_query.get_mut(sprite_entity) {
+            Ok(result) => result,
+            Err(error) => {
+                error!("An ImageFontSpriteText unexpectedly failed: {error}. This will likely cause rendering bugs.");
+                continue;
+            }
+        };
+
+        #[cfg(feature = "gizmos")]
+        let (mut sprite, mut transform, mut gizmo_data) = match child_query.get_mut(sprite_entity) {
             Ok(result) => result,
             Err(error) => {
                 error!("An ImageFontSpriteText unexpectedly failed: {error}. This will likely cause rendering bugs.");
@@ -394,7 +414,7 @@ fn update_existing_sprites(
         sprite.color = sprite_text.color;
 
         let rect = layout.textures[image_font.atlas_character_map[&character]];
-        let (width, _) = compute_dimensions(rect, font_text.font_height, max_height);
+        let (width, _height) = compute_dimensions(rect, font_text.font_height, max_height);
 
         *transform = compute_transform(
             x_pos,
@@ -407,6 +427,17 @@ fn update_existing_sprites(
         );
 
         x_pos += width;
+
+        #[cfg(feature = "gizmos")]
+        #[expect(
+            clippy::used_underscore_binding,
+            reason = "we're using an underscore binding here because it's unused when the \
+            `gizmos` feature is not enabled."
+        )]
+        {
+            gizmo_data.width = width;
+            gizmo_data.height = _height;
+        }
     }
 
     x_pos

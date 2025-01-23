@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Resolved an issue where incorrect width and anchor calculations caused text misalignment ([#10]).
+- `ImageFontGizmoData` was not being updated in `update_existing_sprites`.
 
 [#10]: https://github.com/ilyvion/bevy_image_font/issues/10
 
