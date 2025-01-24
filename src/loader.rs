@@ -232,22 +232,12 @@ pub struct ImageFontDescriptor {
     /// The path to the image file containing the font glyphs, relative to the
     /// RON file. This should be a valid path to a texture file that can be
     /// loaded by the asset system.
-    #[deprecated(
-        since = "7.1.0",
-        note = "This field will become private in the next major version. Use `new` to create a \
-        value of this type and the `image` function to read the field."
-    )]
-    pub image: Utf8PathBuf,
+    image: Utf8PathBuf,
 
     /// The layout description of the font, specifying how characters map to
     /// regions within the image. This can use any of the variants provided
     /// by [`ImageFontLayout`], allowing flexible configuration.
-    #[deprecated(
-        since = "7.1.0",
-        note = "This field will become private in the next major version. Use `new` to create a \
-        value of this type and the `layout` function to read the field."
-    )]
-    pub layout: ImageFontLayout,
+    layout: ImageFontLayout,
 }
 
 /// Errors that can show up during validation.
@@ -264,16 +254,6 @@ pub enum ImageFontDescriptorValidationError {
     #[error("Automatic layout string is empty.")]
     EmptyLayoutString,
 }
-
-#[expect(
-    missing_docs,
-    reason = "temporary type alias for a deprecated, renamed type"
-)]
-#[deprecated(
-    since = "7.1.0",
-    note = "ImageFontSettings was renamed to ImageFontDescriptor and will be removed in version 8.0"
-)]
-pub type ImageFontSettings = ImageFontDescriptor;
 
 impl ImageFontDescriptor {
     /// Creates a new `ImageFontDescriptor` instance with the provided image
@@ -294,7 +274,6 @@ impl ImageFontDescriptor {
     /// # Errors
     /// Returns an [`ImageFontDescriptorValidationError`] if the provided values
     /// do not pass validation.
-    #[expect(deprecated, reason = "fields are only deprecated externally")]
     pub fn new(
         image: Utf8PathBuf,
         layout: ImageFontLayout,
@@ -311,25 +290,7 @@ impl ImageFontDescriptor {
     ///   - `ImageFontLoadError::EmptyImagePath` if the `image` path is empty.
     ///   - `ImageFontLoadError::EmptyLayoutString` if the `layout` string for
     ///     `Automatic` is empty.
-    ///
-    /// # Example
-    /// ```rust
-    /// # use camino::Utf8PathBuf;
-    /// # use bevy_image_font::loader::{ImageFontLayout, ImageFontDescriptor};
-    ///
-    /// let settings = ImageFontDescriptor {
-    ///     image: Utf8PathBuf::from("path/to/font.png"),
-    ///     layout: ImageFontLayout::Automatic("ABCDEF".into()),
-    /// };
-    /// assert!(settings.validate().is_ok());
-    /// ```
-    #[deprecated(
-        since = "7.1.0",
-        note = "This method will become private in the next major version. When using `new` to create a \
-        value of this type, `validate` gets invoked automatically."
-    )]
-    #[expect(deprecated, reason = "fields are only deprecated externally")]
-    pub fn validate(&self) -> Result<(), ImageFontDescriptorValidationError> {
+    fn validate(&self) -> Result<(), ImageFontDescriptorValidationError> {
         if self.image.as_str().trim().is_empty() {
             return Err(ImageFontDescriptorValidationError::EmptyImagePath);
         }
@@ -349,7 +310,6 @@ impl ImageFontDescriptor {
     /// A reference to the `Utf8PathBuf` containing the image file path.
     #[must_use]
     pub fn image(&self) -> &Utf8Path {
-        #[expect(deprecated, reason = "field is only deprecated externally")]
         &self.image
     }
 
@@ -363,7 +323,6 @@ impl ImageFontDescriptor {
     /// A reference to the `ImageFontLayout` describing the font layout.
     #[must_use]
     pub fn layout(&self) -> &ImageFontLayout {
-        #[expect(deprecated, reason = "field is only deprecated externally")]
         &self.layout
     }
 }
@@ -380,24 +339,6 @@ pub enum ImageFontLoadError {
     /// indicates a syntax or formatting error in the RON file.
     #[error("couldn't parse on-disk representation: {0}")]
     ParseFailure(#[from] SpannedError),
-
-    /// The image path provided in the settings is empty. This error occurs
-    /// when no valid file path is specified for the font image.
-    #[error("Image path is empty.")]
-    #[deprecated(
-        since = "7.1.0",
-        note = "No longer in use and will be removed in version 8.0. Use `ValidationError` instead."
-    )]
-    EmptyImagePath,
-
-    /// The layout string used for automatic character placement is empty.
-    /// This error occurs when no characters are defined in the layout string.
-    #[error("Automatic layout string is empty.")]
-    #[deprecated(
-        since = "7.1.0",
-        note = "No longer in use and will be removed in version 8.0. Use `ValidationError` instead."
-    )]
-    EmptyLayoutString,
 
     /// A validation error occurred on the `ImageFontDescriptor`. Inspect the
     /// value of the inner error for details.
@@ -553,7 +494,6 @@ async fn read_and_validate_font_descriptor(
 
     // Deserialize into ImageFontDescriptor and validate
     let font_descriptor: ImageFontDescriptor = ron::de::from_bytes(&data)?;
-    #[expect(deprecated, reason = "method is only deprecated externally")]
     font_descriptor.validate()?;
 
     Ok(font_descriptor)
@@ -587,7 +527,6 @@ fn descriptor_to_character_map_and_layout(
     font_descriptor: ImageFontDescriptor,
     image_size: UVec2,
 ) -> Result<(HashMap<char, usize>, TextureAtlasLayout), ImageFontLoadError> {
-    #[expect(deprecated, reason = "fields are only deprecated externally")]
     let rect_character_map = font_descriptor.layout.into_character_rect_map(image_size)?;
     let (atlas_character_map, layout) =
         ImageFont::mapped_atlas_layout_from_char_map(image_size, &rect_character_map);

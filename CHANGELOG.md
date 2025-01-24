@@ -21,6 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Replaced integer-based scaling (`u32`) with floating-point calculations (`f32`) to improve rendering precision.
   - Refactored text rendering logic to integrate the `ScalingMode` enum.
 
+- **Code Cleanup**:
+
+  - Removed all deprecated annotations and legacy comments associated with `ImageFontDescriptor`.
+
+### Removed
+
+- **Deprecated Fields and Types**:
+
+  - Removed deprecated public fields `image` and `layout` from `ImageFontDescriptor`. Use accessor methods (`image`, `layout`) to retrieve their values.
+  - Removed the deprecated type alias `ImageFontSettings`.
+  - Removed unused error variants `EmptyImagePath` and `EmptyLayoutString`.
+
 ## [0.7.1] - 2025-01-24
 
 ### Added
