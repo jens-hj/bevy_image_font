@@ -348,15 +348,15 @@ fn calculate_text_width(
 
     for character in text.filtered_chars() {
         let rect = layout.textures[image_font.atlas_character_map[&character]];
-        let (width, _) =
-            compute_dimensions(
-                rect,
-                image_font_text.font_height,
-                max_height,
-                image_font_text.letter_spacing,
-                scaling_mode
-            );
-        total_width += width + Into::<f32>::into(image_font_text.letter_spacing);
+        let (width, _) = compute_dimensions(
+            rect,
+            image_font_text.font_height,
+            max_height,
+            image_font_text.letter_spacing,
+            scaling_mode,
+        );
+        let letter_spacing: f32 = image_font_text.letter_spacing.into();
+        total_width += width + letter_spacing;
     }
     total_width
 }
@@ -561,7 +561,8 @@ fn compute_dimensions(
     letter_spacing: LetterSpacing,
     scaling_mode: ScalingMode,
 ) -> (f32, f32) {
-    let width = rect.width() as f32 + Into::<f32>::into(letter_spacing);
+    let letter_spacing: f32 = letter_spacing.into();
+    let width = rect.width() as f32 + letter_spacing;
     let height = rect.height() as f32;
     let max_height = max_height as f32;
     font_height.map_or((width, height), |fh| match scaling_mode {

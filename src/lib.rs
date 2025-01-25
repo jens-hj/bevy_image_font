@@ -236,7 +236,6 @@ impl Into<f32> for LetterSpacing {
     }
 }
 
-
 /// Marks any text where the underlying [`ImageFont`] asset has changed as
 /// changed, which will cause it to be re-rendered.
 #[expect(
