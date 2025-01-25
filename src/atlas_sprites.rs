@@ -21,7 +21,7 @@ use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use derive_setters::Setters;
 
-use crate::filtered_string;
+use crate::{filtered_string, LetterSpacing};
 use crate::{sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText};
 
 /// Internal plugin for conveniently organizing the code related to this
@@ -349,7 +349,13 @@ fn calculate_text_width(
     for character in text.filtered_chars() {
         let rect = layout.textures[image_font.atlas_character_map[&character]];
         let (width, _) =
-            compute_dimensions(rect, image_font_text.font_height, max_height, scaling_mode);
+            compute_dimensions(
+                rect,
+                image_font_text.font_height,
+                max_height,
+                image_font_text.letter_spacing,
+                scaling_mode
+            );
         total_width += width + Into::<f32>::into(image_font_text.letter_spacing);
     }
     total_width
@@ -484,6 +490,7 @@ fn update_existing_sprites(
             rect,
             font_text.font_height,
             max_height,
+            font_text.letter_spacing,
             sprite_text.scaling_mode,
         );
 
@@ -551,9 +558,10 @@ fn compute_dimensions(
     rect: URect,
     font_height: Option<f32>,
     max_height: u32,
+    letter_spacing: LetterSpacing,
     scaling_mode: ScalingMode,
 ) -> (f32, f32) {
-    let width = rect.width() as f32;
+    let width = rect.width() as f32 + Into::<f32>::into(letter_spacing);
     let height = rect.height() as f32;
     let max_height = max_height as f32;
     font_height.map_or((width, height), |fh| match scaling_mode {
@@ -734,6 +742,7 @@ fn add_missing_sprites(
                 rect,
                 image_font_text.font_height,
                 max_height,
+                image_font_text.letter_spacing,
                 sprite_text.scaling_mode,
             );
 
