@@ -204,7 +204,38 @@ pub struct ImageFontText {
     /// integer multiple of the 'native' height if you want pixel accuracy,
     /// but we allow float values for things like animations.
     pub font_height: Option<f32>,
+    /// Determines a constant kerning between characters.
+    pub letter_spacing: LetterSpacing,
 }
+
+/// How kerning between characters is specified.
+#[derive(Debug, Clone, Copy, Reflect)]
+pub enum LetterSpacing {
+    /// Kerning as an integer value, use this when you want a pixel-perfect
+    /// spacing between characters.
+    Pixel(i16),
+    /// Kerning as a floating point value, use this when you want precise
+    /// control over the spacing between characters and don't care about
+    /// pixel-perfectness.
+    Floating(f32),
+}
+
+impl Default for LetterSpacing {
+    /// Zero constant spacing between character
+    fn default() -> Self {
+        Self::Pixel(0)
+    }
+}
+
+impl Into<f32> for LetterSpacing {
+    fn into(self) -> f32 {
+        match self {
+            LetterSpacing::Pixel(pixels) => pixels as f32,
+            LetterSpacing::Floating(value) => value,
+        }
+    }
+}
+
 
 /// Marks any text where the underlying [`ImageFont`] asset has changed as
 /// changed, which will cause it to be re-rendered.

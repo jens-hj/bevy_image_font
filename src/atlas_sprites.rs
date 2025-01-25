@@ -350,7 +350,7 @@ fn calculate_text_width(
         let rect = layout.textures[image_font.atlas_character_map[&character]];
         let (width, _) =
             compute_dimensions(rect, image_font_text.font_height, max_height, scaling_mode);
-        total_width += width;
+        total_width += width + Into::<f32>::into(image_font_text.letter_spacing);
     }
     total_width
 }
