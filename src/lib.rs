@@ -227,10 +227,10 @@ impl Default for LetterSpacing {
     }
 }
 
-impl Into<f32> for LetterSpacing {
-    fn into(self) -> f32 {
-        match self {
-            LetterSpacing::Pixel(pixels) => pixels as f32,
+impl From<LetterSpacing> for f32 {
+    fn from(spacing: LetterSpacing) -> f32 {
+        match spacing {
+            LetterSpacing::Pixel(pixels) => f32::from(pixels),
             LetterSpacing::Floating(value) => value,
         }
     }
