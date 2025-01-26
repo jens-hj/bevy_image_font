@@ -77,7 +77,9 @@ pub struct ImageFontSpriteText {
     /// The default value is `ScalingMode::Rounded`.
     pub scaling_mode: ScalingMode,
 
-    /// Determines a constant kerning between characters.
+    /// Determines a constant kerning between characters. The spacing is given
+    /// at the font's native height and is scaled along with the font at other
+    /// heights.
     pub letter_spacing: LetterSpacing,
 }
 
