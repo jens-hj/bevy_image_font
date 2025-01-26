@@ -358,8 +358,7 @@ fn calculate_text_width(
             sprite_text.letter_spacing,
             sprite_text.scaling_mode,
         );
-        let letter_spacing: f32 = sprite_text.letter_spacing.into();
-        total_width += width + letter_spacing;
+        total_width += width;
     }
     total_width
 }
