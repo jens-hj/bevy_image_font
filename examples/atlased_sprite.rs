@@ -15,8 +15,8 @@ use bevy::color::ColorCurve;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy_asset_loader::prelude::AssetCollectionApp as _;
-use bevy_image_font::atlas_sprites::ImageFontSpriteText;
-use bevy_image_font::{ImageFontPlugin, ImageFontText, LetterSpacing};
+use bevy_image_font::atlas_sprites::{ImageFontSpriteText, LetterSpacing};
+use bevy_image_font::{ImageFontPlugin, ImageFontText};
 
 use crate::common::{DemoAssets, FONT_WIDTH, RAINBOW, TEXT};
 

@@ -21,7 +21,7 @@ use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use derive_setters::Setters;
 
-use crate::{filtered_string, LetterSpacing};
+use crate::filtered_string;
 use crate::{sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText};
 
 /// Internal plugin for conveniently organizing the code related to this
@@ -124,6 +124,34 @@ pub enum ScalingMode {
 struct ImageFontTextData {
     /// Basically a map between character index and character sprite
     sprites: Vec<Entity>,
+}
+
+/// How kerning between characters is specified.
+#[derive(Debug, Clone, Copy, Reflect)]
+pub enum LetterSpacing {
+    /// Kerning as an integer value, use this when you want a pixel-perfect
+    /// spacing between characters.
+    Pixel(i16),
+    /// Kerning as a floating point value, use this when you want precise
+    /// control over the spacing between characters and don't care about
+    /// pixel-perfectness.
+    Floating(f32),
+}
+
+impl Default for LetterSpacing {
+    /// Zero constant spacing between character
+    fn default() -> Self {
+        Self::Pixel(0)
+    }
+}
+
+impl From<LetterSpacing> for f32 {
+    fn from(spacing: LetterSpacing) -> f32 {
+        match spacing {
+            LetterSpacing::Pixel(pixels) => f32::from(pixels),
+            LetterSpacing::Floating(value) => value,
+        }
+    }
 }
 
 /// Debugging data for visualizing an `ImageFontSpriteText` in a scene, enabled
