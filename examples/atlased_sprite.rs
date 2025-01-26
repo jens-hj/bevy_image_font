@@ -16,7 +16,7 @@ use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy_asset_loader::prelude::AssetCollectionApp as _;
 use bevy_image_font::atlas_sprites::ImageFontSpriteText;
-use bevy_image_font::{ImageFontPlugin, ImageFontText};
+use bevy_image_font::{ImageFontPlugin, ImageFontText, LetterSpacing};
 
 use crate::common::{DemoAssets, FONT_WIDTH, RAINBOW, TEXT};
 
@@ -84,6 +84,17 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
             40.,
             0.,
         )),
+    ));
+
+    commands.spawn((
+        ImageFontSpriteText::default()
+            .color(tailwind::ZINC_500)
+            .letter_spacing(LetterSpacing::Pixel(2)),
+        ImageFontText::default()
+            .text(TEXT)
+            .font(assets.image_font.clone())
+            .font_height(36.0),
+        Transform::from_translation(Vec3::new(0.5, -40., 0.)),
     ));
 }
 

@@ -21,7 +21,7 @@ use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use derive_setters::Setters;
 
-use crate::filtered_string;
+use crate::{filtered_string, LetterSpacing};
 use crate::{sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText};
 
 /// Internal plugin for conveniently organizing the code related to this
@@ -76,6 +76,11 @@ pub struct ImageFontSpriteText {
     ///
     /// The default value is `ScalingMode::Rounded`.
     pub scaling_mode: ScalingMode,
+
+    /// Determines a constant kerning between characters. The spacing is given
+    /// at the font's native height and is scaled along with the font at other
+    /// heights.
+    pub letter_spacing: LetterSpacing,
 }
 
 /// Determines how scaling is applied when calculating the dimensions of a
@@ -192,7 +197,7 @@ pub fn set_up_sprites(
         let scale = calculate_scale(image_font_text.font_height, max_height);
         let total_width = calculate_text_width(
             image_font_text,
-            image_font_sprite_text.scaling_mode,
+            image_font_sprite_text,
             image_font,
             layout,
             &text,
@@ -338,7 +343,7 @@ fn calculate_text_height(
 #[inline]
 fn calculate_text_width(
     image_font_text: &ImageFontText,
-    scaling_mode: ScalingMode,
+    sprite_text: &ImageFontSpriteText,
     image_font: &ImageFont,
     layout: &TextureAtlasLayout,
     text: &filtered_string::FilteredString<'_, &String>,
@@ -348,8 +353,13 @@ fn calculate_text_width(
 
     for character in text.filtered_chars() {
         let rect = layout.textures[image_font.atlas_character_map[&character]];
-        let (width, _) =
-            compute_dimensions(rect, image_font_text.font_height, max_height, scaling_mode);
+        let (width, _) = compute_dimensions(
+            rect,
+            image_font_text.font_height,
+            max_height,
+            sprite_text.letter_spacing,
+            sprite_text.scaling_mode,
+        );
         total_width += width;
     }
     total_width
@@ -484,6 +494,7 @@ fn update_existing_sprites(
             rect,
             font_text.font_height,
             max_height,
+            sprite_text.letter_spacing,
             sprite_text.scaling_mode,
         );
 
@@ -551,9 +562,11 @@ fn compute_dimensions(
     rect: URect,
     font_height: Option<f32>,
     max_height: u32,
+    letter_spacing: LetterSpacing,
     scaling_mode: ScalingMode,
 ) -> (f32, f32) {
-    let width = rect.width() as f32;
+    let letter_spacing: f32 = letter_spacing.into();
+    let width = rect.width() as f32 + letter_spacing;
     let height = rect.height() as f32;
     let max_height = max_height as f32;
     font_height.map_or((width, height), |fh| match scaling_mode {
@@ -734,6 +747,7 @@ fn add_missing_sprites(
                 rect,
                 image_font_text.font_height,
                 max_height,
+                sprite_text.letter_spacing,
                 sprite_text.scaling_mode,
             );
 

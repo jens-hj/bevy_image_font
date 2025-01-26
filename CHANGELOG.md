@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `LetterSpacing` enum to allow customizable kerning between characters.
+- `letter_spacing` field to `ImageFontSpriteText` for individual entity customization.
+- Example in `atlased_sprite` to demonstrate `LetterSpacing` usage.
+
+### Changed
+
+- Updated text rendering calculations to account for `letter_spacing`.
+
+### Breaking Changes
+
+- Added `letter_spacing` field to `ImageFontSpriteText`, requiring updates to any initialization of this struct.
+
 ## [0.8.0] - 2025-01-24
 
 ### Added
