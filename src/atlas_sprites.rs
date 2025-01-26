@@ -76,6 +76,9 @@ pub struct ImageFontSpriteText {
     ///
     /// The default value is `ScalingMode::Rounded`.
     pub scaling_mode: ScalingMode,
+
+    /// Determines a constant kerning between characters.
+    pub letter_spacing: LetterSpacing,
 }
 
 /// Determines how scaling is applied when calculating the dimensions of a
@@ -192,7 +195,7 @@ pub fn set_up_sprites(
         let scale = calculate_scale(image_font_text.font_height, max_height);
         let total_width = calculate_text_width(
             image_font_text,
-            image_font_sprite_text.scaling_mode,
+            image_font_sprite_text,
             image_font,
             layout,
             &text,
@@ -338,7 +341,7 @@ fn calculate_text_height(
 #[inline]
 fn calculate_text_width(
     image_font_text: &ImageFontText,
-    scaling_mode: ScalingMode,
+    sprite_text: &ImageFontSpriteText,
     image_font: &ImageFont,
     layout: &TextureAtlasLayout,
     text: &filtered_string::FilteredString<'_, &String>,
@@ -352,10 +355,10 @@ fn calculate_text_width(
             rect,
             image_font_text.font_height,
             max_height,
-            image_font_text.letter_spacing,
-            scaling_mode,
+            sprite_text.letter_spacing,
+            sprite_text.scaling_mode,
         );
-        let letter_spacing: f32 = image_font_text.letter_spacing.into();
+        let letter_spacing: f32 = sprite_text.letter_spacing.into();
         total_width += width + letter_spacing;
     }
     total_width
@@ -490,7 +493,7 @@ fn update_existing_sprites(
             rect,
             font_text.font_height,
             max_height,
-            font_text.letter_spacing,
+            sprite_text.letter_spacing,
             sprite_text.scaling_mode,
         );
 
@@ -743,7 +746,7 @@ fn add_missing_sprites(
                 rect,
                 image_font_text.font_height,
                 max_height,
-                image_font_text.letter_spacing,
+                sprite_text.letter_spacing,
                 sprite_text.scaling_mode,
             );
 

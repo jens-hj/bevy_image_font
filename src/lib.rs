@@ -204,8 +204,6 @@ pub struct ImageFontText {
     /// integer multiple of the 'native' height if you want pixel accuracy,
     /// but we allow float values for things like animations.
     pub font_height: Option<f32>,
-    /// Determines a constant kerning between characters.
-    pub letter_spacing: LetterSpacing,
 }
 
 /// How kerning between characters is specified.

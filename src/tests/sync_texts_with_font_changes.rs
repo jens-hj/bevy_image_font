@@ -151,7 +151,6 @@ fn setup_app_system_state_and_entity() -> (
         text: String::from("Hello"),
         font: font_handle.clone(),
         font_height: Some(36.0),
-        letter_spacing: LetterSpacing::Pixel(0),
     });
 
     let system_state: SystemState<Query<Ref<ImageFontText>>> = SystemState::new(app.world_mut());
