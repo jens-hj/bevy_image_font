@@ -1,3 +1,5 @@
+//! Code for parsing an [`ImageFont`] off of an on-disk representation in `fnt` format.
+
 use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
     image::Image,
