@@ -127,7 +127,8 @@ PRs to support the latest Bevy releases are welcome!
 
 ## Credits
 
-Sample font by [gnsh](https://opengameart.org/content/bitmap-font-0).
+- [`example_font`](https://opengameart.org/content/bitmap-font-0) by gnsh.
+- [`example_variable_width_font`](https://opengameart.org/content/boxy-bold-font) by [Clint Bellanger](http://clintbellanger.net).
 
 ## License
 

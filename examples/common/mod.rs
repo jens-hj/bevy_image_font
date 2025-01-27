@@ -38,7 +38,7 @@ pub(crate) const TEXT: &str = "Sphinx of black quartz, judge my vow!";
 /// The standard width of characters in the example font.
 ///
 /// This value is used to do math that involves the font width. Adjust as needed
-/// if the font is later changed.
+/// if the example font is later changed.
 pub(crate) const FONT_WIDTH: usize = 5;
 
 /// A vibrant palette of rainbow colors for visual effects in examples.
@@ -61,4 +61,7 @@ pub(crate) struct DemoAssets {
     /// The handle to the image font asset loaded from the specified RON file.
     #[asset(path = "example_font.image_font.ron")]
     pub(crate) image_font: Handle<ImageFont>,
+    /// The handle to the image font asset loaded from the specified RON file.
+    #[asset(path = "example_variable_width_font.image_font.ron")]
+    pub(crate) variable_width_image_font: Handle<ImageFont>,
 }

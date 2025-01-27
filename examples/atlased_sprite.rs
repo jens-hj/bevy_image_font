@@ -96,6 +96,19 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
             .font_height(36.0),
         Transform::from_translation(Vec3::new(0.5, -40., 0.)),
     ));
+
+    // This will currently render without spaces; I intend to add a new feature
+    // shortly that will allow a font to have space without needing to have a
+    // space in the font image itself.
+    commands.spawn((
+        AnimateColor(ColorCurve::new(RAINBOW).expect("RAINBOW contains at least two colors")),
+        ImageFontSpriteText::default().letter_spacing(LetterSpacing::Pixel(1)),
+        ImageFontText::default()
+            .text(TEXT.to_uppercase())
+            .font(assets.variable_width_image_font.clone())
+            .font_height(32.0),
+        Transform::from_translation(Vec3::new(0., -120., 0.)),
+    ));
 }
 
 /// Animates the text content of entities with the `AnimateText` component.
