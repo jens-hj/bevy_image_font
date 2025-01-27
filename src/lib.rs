@@ -15,6 +15,8 @@ use derive_setters::Setters;
 mod filtered_string;
 
 pub mod loader;
+#[cfg(feature = "fnt")]
+pub mod loader_fnt;
 
 #[cfg(feature = "rendered")]
 pub mod rendered;
@@ -67,6 +69,9 @@ impl Plugin for ImageFontPlugin {
 
         #[cfg(feature = "rendered")]
         app.add_plugins(rendered::RenderedPlugin);
+
+        #[cfg(feature = "fnt")]
+        app.init_asset_loader::<loader_fnt::ImageFntFontLoader>();
 
         #[cfg(feature = "atlas_sprites")]
         app.add_plugins(atlas_sprites::AtlasSpritesPlugin);
