@@ -38,7 +38,10 @@ impl Plugin for AtlasSpritesPlugin {
                 .in_set(ImageFontSet),
         );
 
-        #[cfg(feature = "gizmos")]
+        #[cfg(all(
+            feature = "gizmos",
+            not(feature = "DO_NOT_USE_internal_tests_disable_gizmos")
+        ))]
         {
             app.add_systems(Update, render_sprite_gizmos);
         }

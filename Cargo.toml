@@ -26,6 +26,8 @@ fnt = []
 gizmos = ["bevy/bevy_gizmos"]
 rendered = ["dep:image"]
 ui = ["rendered", "bevy/bevy_ui"]
+# only here until I can find a better solution
+DO_NOT_USE_internal_tests_disable_gizmos = []
 
 [dependencies]
 bevy = { version = "0.15", default-features = false, features = [

@@ -3,6 +3,9 @@
 use std::any::TypeId;
 use std::path::PathBuf;
 
+use bevy::log::LogPlugin;
+use bevy_image::{CompressedImageFormats, ImageLoader};
+
 use super::*;
 
 mod sync_texts_with_font_changes;
@@ -32,13 +35,15 @@ fn mapped_atlas_layout_from_char_map_creates_correct_character_map_and_layout() 
 }
 
 #[test]
-#[ignore = "'broken' by change from 0.15 to 0.15.1"]
-// TODO: Assess if this test is worth fixing or just removing
 fn image_font_plugin_initialization() {
     let mut app = App::new();
 
-    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
+    app.add_plugins((MinimalPlugins, AssetPlugin::default(), LogPlugin::default()));
     app.add_plugins(ImageFontPlugin);
+
+    app.register_asset_loader(ImageLoader::new(CompressedImageFormats::NONE))
+        .init_asset::<TextureAtlasLayout>()
+        .init_asset::<Image>();
 
     // Verify that `ImageFont` is registered as an asset by attempting to load one
     let asset_server = app.world().resource::<AssetServer>();
