@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `letter_spacing` field to `ImageFontSpriteText` for individual entity customization.
 - Example in `atlased_sprite` to demonstrate `LetterSpacing` usage.
 - Basic support for loading fonts from `.fnt` files.
+  - Introduced `ImageFntFontLoader` for parsing `.fnt` files into `ImageFont` assets.
+  - Added a new `fnt` feature flag to enable `.fnt` font loading.
 
 ### Changed
 
