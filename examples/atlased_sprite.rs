@@ -64,7 +64,11 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
             .text(TEXT)
             .font(assets.image_font.clone())
             .font_height(36.0),
-        Transform::from_translation(Vec3::new(0., 0., 0.)),
+        // Shift 0.5 pixels so our characters end up at integer pixel values. This is only
+        // necessary because we're using a horizontally centered anchor combined with an
+        // odd number of characters. If we used left or right alignment, we wouldn't need
+        // to do this, even with an odd number of characters.
+        Transform::from_translation(Vec3::new(0.5, 0., 0.)),
     ));
     commands.spawn((
         AnimateText(TEXT, 0),

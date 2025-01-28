@@ -792,8 +792,6 @@ fn add_missing_sprites(
                 anchor_vec_individual,
             );
 
-            debug!("Rendering {character} @ {x_pos} with size {width}");
-
             x_pos += width;
 
             let sprite = Sprite {
