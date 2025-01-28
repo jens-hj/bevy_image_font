@@ -1,14 +1,13 @@
 #![allow(clippy::unwrap_used, reason = "test code panics to indicate errors")]
+#![allow(clippy::expect_used, reason = "test code panics to indicate errors")]
 
 use std::any::TypeId;
-use std::path::PathBuf;
-
-use bevy::log::LogPlugin;
-use bevy_image::{CompressedImageFormats, ImageLoader};
 
 use super::*;
+use crate::tests::utils::{initialize_app_with_example_font, ExampleFont};
 
 mod sync_texts_with_font_changes;
+pub(crate) mod utils;
 
 #[test]
 fn mapped_atlas_layout_from_char_map_creates_correct_character_map_and_layout() {
@@ -43,20 +42,9 @@ fn mapped_atlas_layout_from_char_map_creates_correct_character_map_and_layout() 
     ignore
 )]
 fn image_font_plugin_initialization() {
-    let mut app = App::new();
+    let (mut app, handle) = initialize_app_with_example_font(ExampleFont::Monospace);
 
-    app.add_plugins((MinimalPlugins, AssetPlugin::default(), LogPlugin::default()));
-    app.add_plugins(ImageFontPlugin);
-
-    app.register_asset_loader(ImageLoader::new(CompressedImageFormats::NONE))
-        .init_asset::<TextureAtlasLayout>()
-        .init_asset::<Image>();
-
-    // Verify that `ImageFont` is registered as an asset by attempting to load one
     let asset_server = app.world().resource::<AssetServer>();
-    let font_path = PathBuf::from("example_font.image_font.ron");
-
-    let handle: Handle<ImageFont> = asset_server.load(font_path.clone());
     let load_state = asset_server.get_load_state(handle.id());
     assert!(
         load_state.is_some(),

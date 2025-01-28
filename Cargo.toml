@@ -60,6 +60,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "x11",
 ] }
 bevy_asset_loader = { version = "0.22.0", features = ["2d"] }
+float_eq = "1.0.1"
 tokio = { version = "1.42.0", default-features = false, features = [
     "macros",
     "rt",
