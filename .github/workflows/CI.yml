@@ -28,6 +28,7 @@ jobs:
                   submodules: true
 
             - name: Cache the Cargo build files
+              if: github.event_name != 'pull_request'
               uses: Leafwing-Studios/cargo-cache@v2
 
             - name: Cargo check
@@ -74,6 +75,7 @@ jobs:
                   toolchain: ${{ matrix.toolchain }}
 
             - name: Cache the Cargo build files
+              if: github.event_name != 'pull_request'
               uses: Leafwing-Studios/cargo-cache@v2
 
             - name: Install cargo-hack
@@ -122,6 +124,7 @@ jobs:
                   components: clippy, rustfmt
 
             - name: Cache the Cargo build files
+              if: github.event_name != 'pull_request'
               uses: Leafwing-Studios/cargo-cache@v2
 
             - name: Install cargo-hack
