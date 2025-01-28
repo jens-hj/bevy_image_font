@@ -28,11 +28,13 @@ jobs:
                   submodules: true
 
             - name: Cache the Cargo build files
-              if: github.event_name != 'pull_request'
               uses: Leafwing-Studios/cargo-cache@v2
+              with:
+                  cache-group: ubuntu-latest-stable
+                  save-if: ${{ github.event_name != 'pull_request' }}
 
             - name: Cargo check
-              run: cargo check --all-features
+              run: cargo build --all-features
 
     test:
         name: Test
@@ -77,6 +79,9 @@ jobs:
             - name: Cache the Cargo build files
               if: github.event_name != 'pull_request'
               uses: Leafwing-Studios/cargo-cache@v2
+              with:
+                  cache-group: ${{ matrix.os }}-${{ matrix.toolchain }}
+                  save-if: ${{ github.event_name != 'pull_request' && matrix.toolchain == 'stable' }}
 
             - name: Install cargo-hack
               uses: taiki-e/install-action@v2
@@ -85,7 +90,7 @@ jobs:
 
             - name: Cargo test
               id: tests
-              run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace --exclude-features default
+              run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace --exclude-features default --group-features gizmos,DO_NOT_USE_internal_tests_disable_gizmos
 
             # - name: Cargo test
             #   id: tests
@@ -124,8 +129,10 @@ jobs:
                   components: clippy, rustfmt
 
             - name: Cache the Cargo build files
-              if: github.event_name != 'pull_request'
               uses: Leafwing-Studios/cargo-cache@v2
+              with:
+                  cache-group: ubuntu-latest-stable
+                  save-if: ${{ github.event_name != 'pull_request' }}
 
             - name: Install cargo-hack
               uses: taiki-e/install-action@v2
@@ -179,6 +186,8 @@ jobs:
 
             - name: Cache the Cargo build files
               uses: Leafwing-Studios/cargo-cache@v2
+              with:
+                  cache-group: ubuntu-latest-nightly
 
             - name: Build documentation
               run: cargo doc -Zunstable-options -Zrustdoc-scrape-examples --no-deps --all-features --workspace

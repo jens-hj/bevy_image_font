@@ -35,6 +35,13 @@ fn mapped_atlas_layout_from_char_map_creates_correct_character_map_and_layout() 
 }
 
 #[test]
+#[cfg_attr(
+    all(
+        feature = "gizmos",
+        not(feature = "DO_NOT_USE_internal_tests_disable_gizmos")
+    ),
+    ignore
+)]
 fn image_font_plugin_initialization() {
     let mut app = App::new();
 
