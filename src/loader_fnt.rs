@@ -1,14 +1,21 @@
-//! Code for parsing an [`ImageFont`] off of an on-disk representation in `fnt` format.
+//! Code for parsing an [`ImageFont`] off of an on-disk representation in `fnt`
+//! format.
 
 use bevy::{
-    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
+    asset::{io::Reader, AssetLoader, AsyncReadExt as _, LoadContext},
     image::Image,
     math::{URect, UVec2},
     sprite::TextureAtlasLayout,
     utils::HashMap,
 };
 
-use crate::{loader::*, ImageFont};
+use crate::{
+    loader::{
+        ImageFontDescriptor, ImageFontDescriptorValidationError, ImageFontLayout,
+        ImageFontLoadError, ImageFontLoaderSettings,
+    },
+    ImageFont,
+};
 
 /// Loader for [`ImageFont`]s.
 #[derive(Debug, Default)]
