@@ -289,7 +289,7 @@ fn update_sprite_values() {
         // update_sprite_values
         assert_ne!(
             texture_atlas.index,
-            render_context.image_font.atlas_character_map[&first_char]
+            render_context.image_font.atlas_character_map[&first_char].atlas_index
         );
         assert_ne!(color, render_context.image_font_sprite_text.color);
 
@@ -298,7 +298,7 @@ fn update_sprite_values() {
         // Verify the texture atlas and color are updated
         assert_eq!(
             texture_atlas.index,
-            render_context.image_font.atlas_character_map[&first_char]
+            render_context.image_font.atlas_character_map[&first_char].atlas_index
         );
         assert_eq!(color, render_context.image_font_sprite_text.color);
     });

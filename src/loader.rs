@@ -16,7 +16,7 @@ use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::ImageFont;
+use crate::{ImageFont, ImageFontCharacter};
 
 /// Human-readable way to specify where the characters in an image font are.
 #[derive(Debug, Serialize, Deserialize)]
@@ -331,7 +331,7 @@ impl ImageFontDescriptor {
 #[derive(Debug, Default)]
 pub struct ImageFontLoader;
 
-/// Errors that can show up during loading.
+/// Errors that can show up during font loading.
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum ImageFontLoadError {
@@ -526,7 +526,7 @@ async fn read_and_validate_font_descriptor(
 fn descriptor_to_character_map_and_layout(
     font_descriptor: ImageFontDescriptor,
     image_size: UVec2,
-) -> Result<(HashMap<char, usize>, TextureAtlasLayout), ImageFontLoadError> {
+) -> Result<(HashMap<char, ImageFontCharacter>, TextureAtlasLayout), ImageFontLoadError> {
     let rect_character_map = font_descriptor.layout.into_character_rect_map(image_size)?;
     let (atlas_character_map, layout) =
         ImageFont::mapped_atlas_layout_from_char_map(image_size, &rect_character_map);

@@ -24,11 +24,11 @@ fn mapped_atlas_layout_from_char_map_creates_correct_character_map_and_layout() 
     assert!(atlas_character_map.contains_key(&'B'));
     assert_eq!(atlas_layout.textures.len(), 2);
     assert_eq!(
-        atlas_layout.textures[atlas_character_map[&'A']],
+        atlas_layout.textures[atlas_character_map[&'A'].atlas_index],
         char_rect_map[&'A']
     );
     assert_eq!(
-        atlas_layout.textures[atlas_character_map[&'B']],
+        atlas_layout.textures[atlas_character_map[&'B'].atlas_index],
         char_rect_map[&'B']
     );
 }

@@ -98,7 +98,7 @@ pub struct ImageFont {
     pub texture: Handle<Image>,
     /// The glyph used to render `c` is contained in the part of the image
     /// pointed to by `atlas.textures[atlas_character_map[c]]`.
-    pub atlas_character_map: HashMap<char, usize>,
+    pub atlas_character_map: HashMap<char, ImageFontCharacter>,
     /// The [`ImageSampler`] to use during font image rendering. The default is
     /// `nearest`, which scales an image without blurring, keeping the text
     /// crisp and pixellated.
@@ -130,11 +130,16 @@ impl ImageFont {
     fn mapped_atlas_layout_from_char_map(
         size: UVec2,
         char_rect_map: &HashMap<char, URect>,
-    ) -> (HashMap<char, usize>, TextureAtlasLayout) {
+    ) -> (HashMap<char, ImageFontCharacter>, TextureAtlasLayout) {
         let mut atlas_character_map = HashMap::new();
         let mut atlas_layout = TextureAtlasLayout::new_empty(size);
         for (&character, &rect) in char_rect_map {
-            atlas_character_map.insert(character, atlas_layout.add_texture(rect));
+            atlas_character_map.insert(
+                character,
+                ImageFontCharacter {
+                    atlas_index: atlas_layout.add_texture(rect),
+                },
+            );
         }
 
         (atlas_character_map, atlas_layout)
@@ -159,7 +164,7 @@ impl ImageFont {
     /// An `ImageFont` instance ready to be used for rendering text.
     fn from_mapped_atlas_layout(
         texture: Handle<Image>,
-        atlas_character_map: HashMap<char, usize>,
+        atlas_character_map: HashMap<char, ImageFontCharacter>,
         atlas_layout: Handle<TextureAtlasLayout>,
         image_sampler: ImageSampler,
     ) -> Self {
@@ -193,6 +198,34 @@ impl ImageFont {
     fn filter_string<S: AsRef<str>>(&self, string: S) -> filtered_string::FilteredString<'_, S> {
         filtered_string::FilteredString::new(string, &self.atlas_character_map)
     }
+}
+
+/// Represents a character in an [`ImageFont`], storing metadata required for
+/// rendering.
+///
+/// This struct contains information about a specific character in the font,
+/// including its location in the texture atlas and any additional properties
+/// that may be useful for rendering, alignment, or future extensions.
+///
+/// # Fields
+/// - `atlas_index`: The index of the character's glyph in the texture atlas.
+/// - *(Planned: Additional metadata fields, such as offsets, kerning, or
+///   stylistic variants.)*
+///
+/// # Future Considerations
+/// This struct is designed to be extensible. In the future, it may include:
+/// - **Kerning Information:** Adjustments for character spacing.
+/// - **Per-Character Offsets:** Fine-tuned positioning for different glyphs.
+/// - **Stylistic Variants:** Alternative representations of characters.
+#[derive(Debug, Clone, Reflect)]
+#[non_exhaustive]
+pub struct ImageFontCharacter {
+    /// The index of this character's glyph in the texture atlas.
+    ///
+    /// This value corresponds to an entry in the [`TextureAtlasLayout`],
+    /// determining the region of the texture where this character's glyph
+    /// is located.
+    pub atlas_index: usize,
 }
 
 /// Text rendered using an [`ImageFont`].

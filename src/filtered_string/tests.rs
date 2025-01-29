@@ -4,8 +4,8 @@ use super::*;
 #[test]
 fn filters_chars() {
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('a', 1);
-    atlas_character_map.insert('b', 2);
+    atlas_character_map.insert('a', ImageFontCharacter { atlas_index: 1 });
+    atlas_character_map.insert('b', ImageFontCharacter { atlas_index: 2 });
 
     let filtered_string = FilteredString::new("abcd", &atlas_character_map);
     let filtered_chars: Vec<_> = filtered_string.filtered_chars().collect();
@@ -16,8 +16,8 @@ fn filters_chars() {
 #[test]
 fn is_empty_when_no_characters_retained() {
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('x', 1);
-    atlas_character_map.insert('y', 2);
+    atlas_character_map.insert('x', ImageFontCharacter { atlas_index: 1 });
+    atlas_character_map.insert('y', ImageFontCharacter { atlas_index: 2 });
 
     let filtered_string = FilteredString::new("abc", &atlas_character_map);
 
@@ -27,7 +27,7 @@ fn is_empty_when_no_characters_retained() {
 #[test]
 fn is_not_empty_when_characters_retained() {
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('a', 1);
+    atlas_character_map.insert('a', ImageFontCharacter { atlas_index: 1 });
 
     let filtered_string = FilteredString::new("abc", &atlas_character_map);
 
@@ -37,8 +37,8 @@ fn is_not_empty_when_characters_retained() {
 #[test]
 fn display_shows_filtered_text() {
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('a', 1);
-    atlas_character_map.insert('b', 2);
+    atlas_character_map.insert('a', ImageFontCharacter { atlas_index: 1 });
+    atlas_character_map.insert('b', ImageFontCharacter { atlas_index: 2 });
 
     let filtered_string = FilteredString::new("abcd", &atlas_character_map);
 
@@ -51,11 +51,11 @@ fn test_image_font_filter_string() {
     use bevy::asset::Handle;
     use bevy_image::ImageSampler;
 
-    use crate::ImageFont;
+    use crate::{ImageFont, ImageFontCharacter};
 
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('A', 0);
-    atlas_character_map.insert('B', 1);
+    atlas_character_map.insert('A', ImageFontCharacter { atlas_index: 0 });
+    atlas_character_map.insert('B', ImageFontCharacter { atlas_index: 1 });
     let font = ImageFont {
         atlas_layout: Handle::default(),
         texture: Handle::default(),

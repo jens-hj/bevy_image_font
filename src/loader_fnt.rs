@@ -9,6 +9,7 @@ use bevy::{
     utils::HashMap,
 };
 
+use crate::ImageFontCharacter;
 use crate::{
     loader::{
         ImageFontDescriptor, ImageFontDescriptorValidationError, ImageFontLayout,
@@ -120,7 +121,12 @@ impl AssetLoader for ImageFntFontLoader {
         let mut atlas_character_map = HashMap::new();
         let mut atlas_layout = TextureAtlasLayout::new_empty(size);
         for (&character, &rect) in &map {
-            atlas_character_map.insert(character, atlas_layout.add_texture(rect));
+            atlas_character_map.insert(
+                character,
+                ImageFontCharacter {
+                    atlas_index: atlas_layout.add_texture(rect),
+                },
+            );
         }
 
         let layout_handle = load_context.add_labeled_asset(String::from("layout"), atlas_layout);

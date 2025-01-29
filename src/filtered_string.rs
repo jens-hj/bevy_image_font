@@ -28,6 +28,8 @@ use std::fmt;
 
 use bevy::utils::HashMap;
 
+use crate::ImageFontCharacter;
+
 /// A wrapper type for filtering characters from a string based on a character
 /// map.
 ///
@@ -49,7 +51,7 @@ pub(crate) struct FilteredString<'map, S: AsRef<str>> {
     /// This map determines which characters from `string` are retained during
     /// filtering. Only characters present as keys in this map will be included
     /// in the filtered output.
-    atlas_character_map: &'map HashMap<char, usize>,
+    atlas_character_map: &'map HashMap<char, ImageFontCharacter>,
 }
 
 impl<'map, S: AsRef<str>> FilteredString<'map, S> {
@@ -63,7 +65,10 @@ impl<'map, S: AsRef<str>> FilteredString<'map, S> {
     /// # Returns
     /// A `FilteredString` instance that can produce iterators over the filtered
     /// characters.
-    pub(crate) fn new(string: S, atlas_character_map: &'map HashMap<char, usize>) -> Self {
+    pub(crate) fn new(
+        string: S,
+        atlas_character_map: &'map HashMap<char, ImageFontCharacter>,
+    ) -> Self {
         Self {
             string,
             atlas_character_map,

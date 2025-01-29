@@ -206,7 +206,9 @@ fn render_text_to_image(
     )]
     let height = text
         .filtered_chars()
-        .map(|character| layout.textures[image_font.atlas_character_map[&character]].height())
+        .map(|character| {
+            layout.textures[image_font.atlas_character_map[&character].atlas_index].height()
+        })
         .reduce(u32::max)
         .expect("we've verified !text.is_empty() already");
     #[expect(
@@ -215,7 +217,9 @@ fn render_text_to_image(
     )]
     let width = text
         .filtered_chars()
-        .map(|character| layout.textures[image_font.atlas_character_map[&character]].width())
+        .map(|character| {
+            layout.textures[image_font.atlas_character_map[&character].atlas_index].width()
+        })
         .reduce(|accumulator, value| accumulator + value)
         .expect("we've verified !text.is_empty() already");
 
@@ -229,7 +233,7 @@ fn render_text_to_image(
 
     let mut x = 0;
     for character in text.filtered_chars() {
-        let rect = layout.textures[image_font.atlas_character_map[&character]];
+        let rect = layout.textures[image_font.atlas_character_map[&character].atlas_index];
         let width = rect.width();
         let height = rect.height();
         output_image.copy_from(

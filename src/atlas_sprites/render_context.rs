@@ -142,8 +142,8 @@ impl<'assets> RenderContext<'assets> {
             let mut max_height = 1;
 
             for character in self.filtered_text.filtered_chars() {
-                let rect =
-                    self.atlas_layout.textures[self.image_font.atlas_character_map[&character]];
+                let rect = self.atlas_layout.textures
+                    [self.image_font.atlas_character_map[&character].atlas_index];
                 max_height = max_height.max(rect.height());
             }
 
@@ -187,7 +187,8 @@ impl<'assets> RenderContext<'assets> {
     )]
     #[inline]
     pub(crate) fn character_dimensions(&self, character: char) -> (f32, f32) {
-        let rect = self.atlas_layout.textures[self.image_font.atlas_character_map[&character]];
+        let rect =
+            self.atlas_layout.textures[self.image_font.atlas_character_map[&character].atlas_index];
         let letter_spacing = self.image_font_sprite_text.letter_spacing.to_f32();
         let width = rect.width() as f32 + letter_spacing;
         let height = rect.height() as f32;
@@ -225,7 +226,7 @@ impl<'assets> RenderContext<'assets> {
     pub(crate) fn font_texture_atlas(&self, character: char) -> TextureAtlas {
         TextureAtlas {
             layout: self.image_font.atlas_layout.clone_weak(),
-            index: self.image_font.atlas_character_map[&character],
+            index: self.image_font.atlas_character_map[&character].atlas_index,
         }
     }
 
@@ -253,7 +254,7 @@ impl<'assets> RenderContext<'assets> {
         texture_atlas: &mut TextureAtlas,
         color: &mut Color,
     ) {
-        texture_atlas.index = self.image_font.atlas_character_map[&character];
+        texture_atlas.index = self.image_font.atlas_character_map[&character].atlas_index;
         *color = self.image_font_sprite_text.color;
     }
 
