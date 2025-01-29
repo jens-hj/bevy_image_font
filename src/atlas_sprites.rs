@@ -96,10 +96,48 @@ pub struct ImageFontSpriteText {
 }
 
 /// Basically a map between character index and character sprite
-#[derive(Debug, Clone, Default, Component)]
+#[derive(Debug, Clone, Component)]
 struct ImageFontTextData {
+    /// The entity that owns this `ImageFontTextData` component.
+    self_entity: Entity,
+
     /// Basically a map between character index and character sprite
     sprites: Vec<Entity>,
+
+    /// Tracks whether a missing font asset has already been reported for this
+    /// entity.
+    ///
+    /// This flag prevents repeated error messages when an `ImageFontText`
+    /// component references a font asset that has not been loaded. Once an
+    /// error is logged for a missing font, subsequent frames will not log
+    /// additional errors for the same entity.
+    ///
+    /// # Default Behavior
+    /// - Initially set to `false`, meaning no missing font error has been
+    ///   reported.
+    /// - Set to `true` after the first error message is logged.
+    has_reported_missing_font: bool,
+}
+impl ImageFontTextData {
+    /// Creates a new `ImageFontTextData` instance for a given entity.
+    ///
+    /// This function initializes an empty `ImageFontTextData` struct and
+    /// associates it with the provided entity. It ensures that newly
+    /// created text data always has a reference to its owning entity.
+    ///
+    /// # Parameters
+    /// - `self_entity`: The entity that this `ImageFontTextData` belongs to.
+    ///
+    /// # Returns
+    /// A new instance of `ImageFontTextData` with an empty sprite list and the
+    /// specified `self_entity`.
+    fn new(entity: Entity) -> Self {
+        Self {
+            self_entity: entity,
+            sprites: default(),
+            has_reported_missing_font: default(),
+        }
+    }
 }
 
 /// Debugging data for visualizing an `ImageFontSpriteText` in a scene, enabled
@@ -155,7 +193,7 @@ pub fn set_up_sprites(
         {
             &mut *image_font_text_data
         } else {
-            maybe_new_image_font_text_data = Some(ImageFontTextData::default());
+            maybe_new_image_font_text_data = Some(ImageFontTextData::new(entity));
             #[expect(clippy::expect_used, reason = "newly created Some() value")]
             maybe_new_image_font_text_data
                 .as_mut()
@@ -167,7 +205,13 @@ pub fn set_up_sprites(
             image_font_text,
             image_font_sprite_text,
             &texture_atlas_layouts,
+            image_font_text_data,
         ) else {
+            maybe_insert_new_image_font_text_data(
+                &mut commands,
+                entity,
+                maybe_new_image_font_text_data,
+            );
             continue;
         };
 
@@ -186,10 +230,42 @@ pub fn set_up_sprites(
             image_font_sprite_text,
         );
 
-        if let Some(new_image_font_text_data) = maybe_new_image_font_text_data {
-            debug!("Inserted new ImageFontTextData for entity {:?}", entity);
-            commands.entity(entity).insert(new_image_font_text_data);
-        }
+        maybe_insert_new_image_font_text_data(
+            &mut commands,
+            entity,
+            maybe_new_image_font_text_data,
+        );
+    }
+}
+
+/// Inserts a newly created `ImageFontTextData` component into an entity if one
+/// was generated.
+///
+/// This function takes an `Option<ImageFontTextData>`, which may contain a
+/// newly created instance. If it is `Some`, the function inserts the
+/// `ImageFontTextData` into the provided entity. If it is `None`, no action is
+/// taken.
+///
+/// # Parameters
+/// - `commands`: A command buffer used to insert the component if
+///   `maybe_new_image_font_text_data` is `Some`.
+/// - `entity`: The entity that will receive the `ImageFontTextData`.
+/// - `maybe_new_image_font_text_data`: An `Option<ImageFontTextData>` that
+///   contains a newly created instance if one was generated earlier.
+///
+/// # Notes
+/// - This function does not check whether the entity already has an
+///   `ImageFontTextData` component; it simply inserts the given value if it
+///   exists.
+/// - If a new component is inserted, a debug message is logged.
+fn maybe_insert_new_image_font_text_data(
+    commands: &mut Commands,
+    entity: Entity,
+    maybe_new_image_font_text_data: Option<ImageFontTextData>,
+) {
+    if let Some(new_image_font_text_data) = maybe_new_image_font_text_data {
+        debug!("Inserted new ImageFontTextData for entity {:?}", entity);
+        commands.entity(entity).insert(new_image_font_text_data);
     }
 }
 

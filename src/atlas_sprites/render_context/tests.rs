@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use bevy::color::palettes::css;
 use float_eq::assert_float_eq;
 
@@ -358,6 +360,7 @@ fn large_text_block() {
 #[derive(Clone)]
 struct RenderContextTester<'app> {
     image_font_text: ImageFontText,
+    image_font_text_data: RefCell<ImageFontTextData>,
     image_font_sprite_text: ImageFontSpriteText,
     image_font_assets: &'app Assets<ImageFont>,
     atlas_layout_assets: &'app Assets<TextureAtlasLayout>,
@@ -379,6 +382,7 @@ impl<'app> RenderContextTester<'app> {
 
         Self {
             image_font_text,
+            image_font_text_data: ImageFontTextData::new(Entity::PLACEHOLDER).into(),
             image_font_sprite_text,
             image_font_assets,
             atlas_layout_assets,
@@ -391,6 +395,7 @@ impl<'app> RenderContextTester<'app> {
             &self.image_font_text,
             &self.image_font_sprite_text,
             self.atlas_layout_assets,
+            &mut self.image_font_text_data.borrow_mut(),
         )
         .unwrap();
 
@@ -410,6 +415,7 @@ impl<'app> RenderContextTester<'app> {
             &modified_clone.image_font_text,
             &modified_clone.image_font_sprite_text,
             modified_clone.atlas_layout_assets,
+            &mut self.image_font_text_data.borrow_mut(),
         );
 
         test_func(render_context);

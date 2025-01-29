@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated text rendering calculations to account for `letter_spacing`.
+- No longer repeatedly prints error for missing font assets.
 
 ### Breaking Changes
 

@@ -30,11 +30,12 @@
 //! `SpriteContext`.
 
 use std::cell::Cell;
+use std::fmt::Debug;
 
 use bevy::prelude::*;
 
 use crate::atlas_sprites::anchors::AnchorExt as _;
-use crate::atlas_sprites::{AnchorOffsets, ImageFontSpriteText};
+use crate::atlas_sprites::{AnchorOffsets, ImageFontSpriteText, ImageFontTextData};
 use crate::filtered_string::FilteredString;
 use crate::{ImageFont, ImageFontText};
 
@@ -82,10 +83,22 @@ impl<'assets> RenderContext<'assets> {
         image_font_text: &'assets ImageFontText,
         image_font_sprite_text: &'assets ImageFontSpriteText,
         texture_atlas_layouts: &'assets Assets<TextureAtlasLayout>,
+        image_font_text_data: &mut ImageFontTextData,
     ) -> Option<Self> {
         let font_handle = &image_font_text.font;
         let Some(image_font) = image_fonts.get(font_handle) else {
-            error!("ImageFont asset not loaded: {:?}", font_handle);
+            if !image_font_text_data.has_reported_missing_font {
+                let font_handle_detail: &dyn Debug = if let Some(font_path) = font_handle.path() {
+                    font_path
+                } else {
+                    &font_handle.id()
+                };
+                error!(
+                    "ImageFont asset {font_handle_detail:?} is not loaded; can't render text for entity: {}",
+                    image_font_text_data.self_entity
+                );
+                image_font_text_data.has_reported_missing_font = true;
+            }
             return None;
         };
 
