@@ -45,7 +45,7 @@ use crate::{ImageFont, ImageFontText};
 /// font text component that defines the text content and font height.
 pub(crate) struct RenderContext<'assets> {
     /// The texture atlas layout defining glyph placements.
-    atlas_layout: &'assets TextureAtlasLayout,
+    atlas_layouts: Vec<&'assets TextureAtlasLayout>,
     /// The font asset containing glyph metadata.
     image_font: &'assets ImageFont,
     /// The text component defining the content and font height.
@@ -102,18 +102,30 @@ impl<'assets> RenderContext<'assets> {
             return None;
         };
 
-        let Some(atlas_layout) = texture_atlas_layouts.get(&image_font.atlas_layout) else {
-            error!(
-                "TextureAtlasLayout not loaded: {:?}",
-                image_font.atlas_layout
-            );
-            return None;
+        let atlas_layouts: Result<Vec<_>, _> = image_font
+            .atlas_layouts
+            .iter()
+            .map(|texture_atlas_layout| {
+                texture_atlas_layouts
+                    .get(texture_atlas_layout)
+                    .ok_or_else(|| {
+                        format!("TextureAtlasLayout not loaded: {texture_atlas_layout:?}")
+                    })
+            })
+            .collect();
+
+        let atlas_layouts = match atlas_layouts {
+            Ok(layout) => layout,
+            Err(error) => {
+                error!("{error}");
+                return None;
+            }
         };
 
         let filtered_text = image_font.filter_string(&image_font_text.text);
 
         Some(RenderContext {
-            atlas_layout,
+            atlas_layouts,
             image_font,
             image_font_text,
             image_font_sprite_text,
@@ -155,8 +167,9 @@ impl<'assets> RenderContext<'assets> {
             let mut max_height = 1;
 
             for character in self.filtered_text.filtered_chars() {
-                let rect = self.atlas_layout.textures
-                    [self.image_font.atlas_character_map[&character].atlas_index];
+                let image_font_character = &self.image_font.atlas_character_map[&character];
+                let rect = self.atlas_layouts[image_font_character.page_index].textures
+                    [image_font_character.character_index];
                 max_height = max_height.max(rect.height());
             }
 
@@ -200,8 +213,9 @@ impl<'assets> RenderContext<'assets> {
     )]
     #[inline]
     pub(crate) fn character_dimensions(&self, character: char) -> (f32, f32) {
-        let rect =
-            self.atlas_layout.textures[self.image_font.atlas_character_map[&character].atlas_index];
+        let image_font_character = &self.image_font.atlas_character_map[&character];
+        let rect = self.atlas_layouts[image_font_character.page_index].textures
+            [image_font_character.character_index];
         let letter_spacing = self.image_font_sprite_text.letter_spacing.to_f32();
         let width = rect.width() as f32 + letter_spacing;
         let height = rect.height() as f32;
@@ -222,8 +236,10 @@ impl<'assets> RenderContext<'assets> {
     /// Retrieves the handle to the font texture image.
     ///
     /// This handle is used to assign the appropriate image to a text sprite.
-    pub(crate) fn font_image(&self) -> Handle<Image> {
-        self.image_font.texture.clone_weak()
+    pub(crate) fn font_image(&self, character: char) -> Handle<Image> {
+        let image_font_character = &self.image_font.atlas_character_map[&character];
+
+        self.image_font.textures[image_font_character.page_index].clone_weak()
     }
 
     /// Constructs the texture atlas entry for a specific character.
@@ -237,9 +253,10 @@ impl<'assets> RenderContext<'assets> {
     /// # Returns
     /// A [`TextureAtlas`] structure containing the layout and character index.
     pub(crate) fn font_texture_atlas(&self, character: char) -> TextureAtlas {
+        let image_font_character = &self.image_font.atlas_character_map[&character];
         TextureAtlas {
-            layout: self.image_font.atlas_layout.clone_weak(),
-            index: self.image_font.atlas_character_map[&character].atlas_index,
+            layout: self.image_font.atlas_layouts[image_font_character.page_index].clone_weak(),
+            index: image_font_character.character_index,
         }
     }
 
@@ -267,7 +284,7 @@ impl<'assets> RenderContext<'assets> {
         texture_atlas: &mut TextureAtlas,
         color: &mut Color,
     ) {
-        texture_atlas.index = self.image_font.atlas_character_map[&character].atlas_index;
+        texture_atlas.index = self.image_font.atlas_character_map[&character].character_index;
         *color = self.image_font_sprite_text.color;
     }
 

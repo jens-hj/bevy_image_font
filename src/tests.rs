@@ -16,19 +16,22 @@ fn mapped_atlas_layout_from_char_map_creates_correct_character_map_and_layout() 
     char_rect_map.insert('A', URect::new(0, 0, 16, 16));
     char_rect_map.insert('B', URect::new(16, 0, 32, 16));
 
-    let (atlas_character_map, atlas_layout) =
-        ImageFont::mapped_atlas_layout_from_char_map(size, &char_rect_map);
+    let (atlas_character_map, atlas_layout) = ImageFont::mapped_atlas_layout_from_char_map(
+        0,
+        size,
+        char_rect_map.iter().map(|(&char, &rect)| (char, rect)),
+    );
 
     assert_eq!(atlas_character_map.len(), 2);
     assert!(atlas_character_map.contains_key(&'A'));
     assert!(atlas_character_map.contains_key(&'B'));
     assert_eq!(atlas_layout.textures.len(), 2);
     assert_eq!(
-        atlas_layout.textures[atlas_character_map[&'A'].atlas_index],
+        atlas_layout.textures[atlas_character_map[&'A'].character_index],
         char_rect_map[&'A']
     );
     assert_eq!(
-        atlas_layout.textures[atlas_character_map[&'B'].atlas_index],
+        atlas_layout.textures[atlas_character_map[&'B'].character_index],
         char_rect_map[&'B']
     );
 }
@@ -74,5 +77,5 @@ fn image_font_plugin_initialization() {
 // This is mostly here for the sake of coverage.
 #[test]
 fn creating_image_font_works() {
-    ImageFont::from_mapped_atlas_layout(default(), default(), default(), default());
+    ImageFont::new(default(), default(), default(), default());
 }

@@ -18,6 +18,11 @@ use thiserror::Error;
 
 use crate::{ImageFont, ImageFontCharacter};
 
+#[cfg(feature = "bmf")]
+mod bmf;
+#[cfg(feature = "bmf")]
+pub use bmf::*;
+
 /// Human-readable way to specify where the characters in an image font are.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ImageFontLayout {
@@ -452,10 +457,10 @@ impl AssetLoader for ImageFontLoader {
         let image_handle = load_context.add_labeled_asset(String::from("texture"), image);
         let layout_handle = load_context.add_labeled_asset(String::from("layout"), layout);
 
-        let image_font = ImageFont::from_mapped_atlas_layout(
-            image_handle,
+        let image_font = ImageFont::new(
+            vec![image_handle],
             atlas_character_map,
-            layout_handle,
+            vec![layout_handle],
             settings.image_sampler.clone(),
         );
         Ok(image_font)
@@ -529,7 +534,7 @@ fn descriptor_to_character_map_and_layout(
 ) -> Result<(HashMap<char, ImageFontCharacter>, TextureAtlasLayout), ImageFontLoadError> {
     let rect_character_map = font_descriptor.layout.into_character_rect_map(image_size)?;
     let (atlas_character_map, layout) =
-        ImageFont::mapped_atlas_layout_from_char_map(image_size, &rect_character_map);
+        ImageFont::mapped_atlas_layout_from_char_map(0, image_size, rect_character_map.into_iter());
     Ok((atlas_character_map, layout))
 }
 

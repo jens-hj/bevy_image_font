@@ -15,8 +15,6 @@ use derive_setters::Setters;
 mod filtered_string;
 
 pub mod loader;
-#[cfg(feature = "fnt")]
-pub mod loader_fnt;
 
 #[cfg(feature = "rendered")]
 pub mod rendered;
@@ -70,8 +68,8 @@ impl Plugin for ImageFontPlugin {
         #[cfg(feature = "rendered")]
         app.add_plugins(rendered::RenderedPlugin);
 
-        #[cfg(feature = "fnt")]
-        app.init_asset_loader::<loader_fnt::ImageFntFontLoader>();
+        #[cfg(feature = "bmf")]
+        app.init_asset_loader::<loader::BmFontLoader>();
 
         #[cfg(feature = "atlas_sprites")]
         app.add_plugins(atlas_sprites::AtlasSpritesPlugin);
@@ -86,18 +84,20 @@ impl Plugin for ImageFontPlugin {
 pub struct ImageFontSet;
 
 /// An image font as well as the mapping of characters to regions inside it.
-#[derive(Debug, Clone, Reflect, Asset)]
+#[derive(Debug, Clone, Reflect, Asset, Default)]
 #[reflect(opaque)]
+#[non_exhaustive]
 pub struct ImageFont {
-    /// The layout of the texture atlas, describing the positioning and sizes
-    /// of glyphs within the image font. This layout is used to map character
-    /// regions within the texture.
-    pub atlas_layout: Handle<TextureAtlasLayout>,
-    /// The image that contains the font glyphs. Each glyph is a section of
-    /// this texture, defined by the `atlas_layout` and `atlas_character_map`.
-    pub texture: Handle<Image>,
-    /// The glyph used to render `c` is contained in the part of the image
-    /// pointed to by `atlas.textures[atlas_character_map[c]]`.
+    /// The layouts of the texture atlases describing the positioning and sizes
+    /// of glyphs within the image font. This layout is used to map characters
+    /// to regions within the texture.
+    pub atlas_layouts: Vec<Handle<TextureAtlasLayout>>,
+    /// The images that contain the font glyphs. Each glyph is a section of one
+    /// of these textures, as defined by the `atlas_layout` and
+    /// `atlas_character_map` fields.
+    pub textures: Vec<Handle<Image>>,
+    /// The information required to render the character `c` in
+    /// `atlas_character_map[c]` is stored here.
     pub atlas_character_map: HashMap<char, ImageFontCharacter>,
     /// The [`ImageSampler`] to use during font image rendering. The default is
     /// `nearest`, which scales an image without blurring, keeping the text
@@ -128,16 +128,18 @@ impl ImageFont {
     /// - `TextureAtlasLayout`: The texture atlas layout with the bounding
     ///   rectangles.
     fn mapped_atlas_layout_from_char_map(
+        page: usize,
         size: UVec2,
-        char_rect_map: &HashMap<char, URect>,
+        char_rect_mapping: impl Iterator<Item = (char, URect)>,
     ) -> (HashMap<char, ImageFontCharacter>, TextureAtlasLayout) {
         let mut atlas_character_map = HashMap::new();
         let mut atlas_layout = TextureAtlasLayout::new_empty(size);
-        for (&character, &rect) in char_rect_map {
+        for (character, rect) in char_rect_mapping {
             atlas_character_map.insert(
                 character,
                 ImageFontCharacter {
-                    atlas_index: atlas_layout.add_texture(rect),
+                    page_index: page,
+                    character_index: atlas_layout.add_texture(rect),
                 },
             );
         }
@@ -162,17 +164,20 @@ impl ImageFont {
     ///
     /// # Returns
     /// An `ImageFont` instance ready to be used for rendering text.
-    fn from_mapped_atlas_layout(
-        texture: Handle<Image>,
+    fn new(
+        texture: Vec<Handle<Image>>,
         atlas_character_map: HashMap<char, ImageFontCharacter>,
-        atlas_layout: Handle<TextureAtlasLayout>,
+        atlas_layout: Vec<Handle<TextureAtlasLayout>>,
         image_sampler: ImageSampler,
     ) -> Self {
         Self {
-            atlas_layout,
-            texture,
+            atlas_layouts: atlas_layout,
+            textures: texture,
             atlas_character_map,
             image_sampler,
+            // size: default(),
+            // padding: default(),
+            // spacing: default(),
         }
     }
 
@@ -198,6 +203,49 @@ impl ImageFont {
     fn filter_string<S: AsRef<str>>(&self, string: S) -> filtered_string::FilteredString<'_, S> {
         filtered_string::FilteredString::new(string, &self.atlas_character_map)
     }
+
+    /// Retrieves references to the font's textures.
+    ///
+    /// # Parameters
+    /// - `image_assets`: The asset storage for images.
+    ///
+    /// # Returns
+    /// A vector of references to the images in use by this font.
+    #[cfg(feature = "rendered")]
+    fn textures<'assets>(&self, image_assets: &'assets Assets<Image>) -> Vec<&'assets Image> {
+        self.textures
+            .iter()
+            .map(|handle| {
+                #[expect(clippy::expect_used, reason = "handle is kept alive by ImageFont")]
+                image_assets
+                    .get(handle)
+                    .expect("handle is kept alive by ImageFont")
+            })
+            .collect()
+    }
+
+    /// Retrieves references to the font's texture atlas layouts.
+    ///
+    /// # Parameters
+    /// - `image_assets`: The asset storage for texture atlas layouts.
+    ///
+    /// # Returns
+    /// A vector of references to the texture atlas layouts used by this font.
+    #[cfg(feature = "rendered")]
+    fn layouts<'assets>(
+        &self,
+        image_assets: &'assets Assets<TextureAtlasLayout>,
+    ) -> Vec<&'assets TextureAtlasLayout> {
+        self.atlas_layouts
+            .iter()
+            .map(|handle| {
+                #[expect(clippy::expect_used, reason = "handle is kept alive by ImageFont")]
+                image_assets
+                    .get(handle)
+                    .expect("handle is kept alive by ImageFont")
+            })
+            .collect()
+    }
 }
 
 /// Represents a character in an [`ImageFont`], storing metadata required for
@@ -220,12 +268,20 @@ impl ImageFont {
 #[derive(Debug, Clone, Reflect)]
 #[non_exhaustive]
 pub struct ImageFontCharacter {
-    /// The index of this character's glyph in the texture atlas.
+    /// The index of this character's glyph in the texture atlas given by
+    /// `atlas_page`.
     ///
     /// This value corresponds to an entry in the [`TextureAtlasLayout`],
     /// determining the region of the texture where this character's glyph
     /// is located.
-    pub atlas_index: usize,
+    pub character_index: usize,
+
+    /// The index of the texture atlas page where this character's glyph is
+    /// stored.
+    ///
+    /// When a font spans multiple textures, this field identifies which
+    /// specific texture contains the glyph.
+    pub page_index: usize,
 }
 
 /// Text rendered using an [`ImageFont`].
@@ -313,6 +369,20 @@ fn extract_asset_id(event: &AssetEvent<ImageFont>) -> Option<AssetId<ImageFont>>
 ///   loaded.
 #[derive(Default, Deref, DerefMut)]
 struct CachedHashSet(HashSet<AssetId<ImageFont>>);
+
+// #[derive(Debug, Clone, Copy, Reflect, Default)]
+// pub struct Padding {
+//     up: u8,
+//     right: u8,
+//     down: u8,
+//     left: u8,
+// }
+
+// #[derive(Debug, Clone, Copy, Reflect, Default)]
+// pub struct Spacing {
+//     horizontal: u8,
+//     vertical: u8,
+// }
 
 #[cfg(test)]
 mod tests;

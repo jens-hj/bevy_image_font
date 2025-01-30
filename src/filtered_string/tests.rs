@@ -4,8 +4,20 @@ use super::*;
 #[test]
 fn filters_chars() {
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('a', ImageFontCharacter { atlas_index: 1 });
-    atlas_character_map.insert('b', ImageFontCharacter { atlas_index: 2 });
+    atlas_character_map.insert(
+        'a',
+        ImageFontCharacter {
+            page_index: 0,
+            character_index: 1,
+        },
+    );
+    atlas_character_map.insert(
+        'b',
+        ImageFontCharacter {
+            page_index: 0,
+            character_index: 2,
+        },
+    );
 
     let filtered_string = FilteredString::new("abcd", &atlas_character_map);
     let filtered_chars: Vec<_> = filtered_string.filtered_chars().collect();
@@ -16,8 +28,20 @@ fn filters_chars() {
 #[test]
 fn is_empty_when_no_characters_retained() {
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('x', ImageFontCharacter { atlas_index: 1 });
-    atlas_character_map.insert('y', ImageFontCharacter { atlas_index: 2 });
+    atlas_character_map.insert(
+        'x',
+        ImageFontCharacter {
+            page_index: 0,
+            character_index: 1,
+        },
+    );
+    atlas_character_map.insert(
+        'y',
+        ImageFontCharacter {
+            page_index: 0,
+            character_index: 2,
+        },
+    );
 
     let filtered_string = FilteredString::new("abc", &atlas_character_map);
 
@@ -27,7 +51,13 @@ fn is_empty_when_no_characters_retained() {
 #[test]
 fn is_not_empty_when_characters_retained() {
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('a', ImageFontCharacter { atlas_index: 1 });
+    atlas_character_map.insert(
+        'a',
+        ImageFontCharacter {
+            page_index: 0,
+            character_index: 1,
+        },
+    );
 
     let filtered_string = FilteredString::new("abc", &atlas_character_map);
 
@@ -37,8 +67,20 @@ fn is_not_empty_when_characters_retained() {
 #[test]
 fn display_shows_filtered_text() {
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('a', ImageFontCharacter { atlas_index: 1 });
-    atlas_character_map.insert('b', ImageFontCharacter { atlas_index: 2 });
+    atlas_character_map.insert(
+        'a',
+        ImageFontCharacter {
+            page_index: 0,
+            character_index: 1,
+        },
+    );
+    atlas_character_map.insert(
+        'b',
+        ImageFontCharacter {
+            page_index: 0,
+            character_index: 2,
+        },
+    );
 
     let filtered_string = FilteredString::new("abcd", &atlas_character_map);
 
@@ -54,11 +96,23 @@ fn test_image_font_filter_string() {
     use crate::{ImageFont, ImageFontCharacter};
 
     let mut atlas_character_map = HashMap::new();
-    atlas_character_map.insert('A', ImageFontCharacter { atlas_index: 0 });
-    atlas_character_map.insert('B', ImageFontCharacter { atlas_index: 1 });
+    atlas_character_map.insert(
+        'A',
+        ImageFontCharacter {
+            page_index: 0,
+            character_index: 0,
+        },
+    );
+    atlas_character_map.insert(
+        'B',
+        ImageFontCharacter {
+            page_index: 0,
+            character_index: 1,
+        },
+    );
     let font = ImageFont {
-        atlas_layout: Handle::default(),
-        texture: Handle::default(),
+        atlas_layouts: vec![Handle::default()],
+        textures: vec![Handle::default()],
         atlas_character_map: atlas_character_map.clone(),
         image_sampler: ImageSampler::nearest(),
     };

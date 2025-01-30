@@ -20,9 +20,9 @@ rustdoc-args = ["--cfg", "docsrs"]
 cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
 
 [features]
-default = ["ui", "rendered", "atlas_sprites", "fnt"]
+default = ["ui", "rendered", "atlas_sprites", "bmf"]
 atlas_sprites = []
-fnt = []
+bmf = []
 gizmos = ["bevy/bevy_gizmos"]
 rendered = ["dep:image"]
 ui = ["rendered", "bevy/bevy_ui"]
@@ -36,6 +36,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "bevy_sprite",
 ] }
 bevy_image = "0.15"
+bmfont_rs = { version = "0.2.0", features = ["xml"] }
 camino = { version = "1.1.9", features = ["serde1"] }
 derive_setters = "0.1.6"
 ron = "0.8.1"
@@ -86,7 +87,7 @@ doc-scrape-examples = true
 absolute_paths_not_starting_with_crate = "warn"
 ambiguous_negative_literals = "warn"
 deprecated_safe_2024 = "warn"
-edition_2024_expr_fragment_specifier = "warn"
+#edition_2024_expr_fragment_specifier = "warn"
 #elided_lifetimes_in_paths = "warn"
 explicit_outlives_requirements = "warn"
 ffi_unwind_calls = "warn"
@@ -117,6 +118,7 @@ single_use_lifetimes = "warn"
 #tail_expr_drop_order = "warn"
 trivial_casts = "warn"
 trivial_numeric_casts = "warn"
+unexpected_cfgs = "deny"
 unit_bindings = "warn"
 unnameable_types = "warn"
 unreachable_pub = "warn"

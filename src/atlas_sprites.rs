@@ -444,7 +444,7 @@ fn add_missing_sprites(
         {
             let transform = render_context.transform(&mut x_pos, character);
             let sprite = Sprite {
-                image: render_context.font_image(),
+                image: render_context.font_image(character),
                 texture_atlas: Some(render_context.font_texture_atlas(character)),
                 color: sprite_text.color,
                 ..Default::default()

@@ -174,13 +174,8 @@ fn render_text_to_image(
     let image_font = image_fonts
         .get(&image_font_text.font)
         .ok_or(ImageFontRenderError::MissingImageFontAsset)?;
-    let font_texture = images
-        .get(&image_font.texture)
-        .ok_or(ImageFontRenderError::MissingTextureAsset)?;
-    #[expect(clippy::expect_used, reason = "handle is kept alive by ImageFont")]
-    let layout = layouts
-        .get(&image_font.atlas_layout)
-        .expect("handle is kept alive by ImageFont");
+    let textures = image_font.textures(images);
+    let layouts = image_font.layouts(layouts);
 
     let text = image_font.filter_string(&image_font_text.text);
 
@@ -207,7 +202,9 @@ fn render_text_to_image(
     let height = text
         .filtered_chars()
         .map(|character| {
-            layout.textures[image_font.atlas_character_map[&character].atlas_index].height()
+            layouts[image_font.atlas_character_map[&character].page_index].textures
+                [image_font.atlas_character_map[&character].character_index]
+                .height()
         })
         .reduce(u32::max)
         .expect("we've verified !text.is_empty() already");
@@ -218,26 +215,32 @@ fn render_text_to_image(
     let width = text
         .filtered_chars()
         .map(|character| {
-            layout.textures[image_font.atlas_character_map[&character].atlas_index].width()
+            layouts[image_font.atlas_character_map[&character].page_index].textures
+                [image_font.atlas_character_map[&character].character_index]
+                .width()
         })
         .reduce(|accumulator, value| accumulator + value)
         .expect("we've verified !text.is_empty() already");
 
     let mut output_image = image::RgbaImage::new(width, height);
-    let font_texture: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(
-        font_texture.width(),
-        font_texture.height(),
-        font_texture.data.as_slice(),
-    )
-    .ok_or(ImageFontRenderError::UnknownError)?;
+    let font_texture: Vec<ImageBuffer<Rgba<u8>, _>> = textures
+        .iter()
+        .map(|texture| {
+            ImageBuffer::from_raw(texture.width(), texture.height(), texture.data.as_slice())
+        })
+        .collect::<Option<_>>()
+        .ok_or(ImageFontRenderError::UnknownError)?;
 
     let mut x = 0;
     for character in text.filtered_chars() {
-        let rect = layout.textures[image_font.atlas_character_map[&character].atlas_index];
+        let image_font_character = &image_font.atlas_character_map[&character];
+        let rect =
+            layouts[image_font_character.page_index].textures[image_font_character.character_index];
         let width = rect.width();
         let height = rect.height();
         output_image.copy_from(
-            &*font_texture.view(rect.min.x, rect.min.y, width, height),
+            &*font_texture[image_font_character.page_index]
+                .view(rect.min.x, rect.min.y, width, height),
             x,
             0,
         )?;
