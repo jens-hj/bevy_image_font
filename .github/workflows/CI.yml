@@ -172,10 +172,11 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Cache the Cargo build files
-              uses: Leafwing-Studios/cargo-cache@v2
-              with:
-                  cache-group: check
+            # XXX: container is missing 'jq' used by action
+            # - name: Cache the Cargo build files
+            #   uses: Leafwing-Studios/cargo-cache@v2
+            #   with:
+            #       cache-group: check
 
             - name: Generate code coverage
               run: |
