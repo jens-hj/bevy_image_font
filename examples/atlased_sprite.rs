@@ -62,7 +62,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
         ImageFontSpriteText::default(),
         ImageFontText::default()
             .text(TEXT)
-            .font(assets.image_font.clone())
+            .font(assets.example.clone())
             .font_height(36.0),
         // Shift 0.5 pixels so our characters end up at integer pixel values. This is only
         // necessary because we're using a horizontally centered anchor combined with an
@@ -77,7 +77,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
         ImageFontSpriteText::default()
             .color(tailwind::AMBER_500)
             .anchor(Anchor::CenterLeft),
-        ImageFontText::default().font(assets.image_font.clone()),
+        ImageFontText::default().font(assets.example.clone()),
         #[expect(
             clippy::cast_precision_loss,
             reason = "the magnitude of the numbers we're working on here are too small to lose \
@@ -96,7 +96,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
             .letter_spacing(LetterSpacing::Pixel(2)),
         ImageFontText::default()
             .text(TEXT)
-            .font(assets.image_font.clone())
+            .font(assets.example.clone())
             .font_height(36.0),
         Transform::from_translation(Vec3::new(0.5, -40., 0.)),
     ));
@@ -109,7 +109,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
         ImageFontSpriteText::default().letter_spacing(LetterSpacing::Pixel(1)),
         ImageFontText::default()
             .text(TEXT.to_uppercase())
-            .font(assets.variable_width_image_font.clone())
+            .font(assets.variable_width.clone())
             .font_height(32.0),
         Transform::from_translation(Vec3::new(0., -120., 0.)),
     ));

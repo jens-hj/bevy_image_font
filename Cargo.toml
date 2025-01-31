@@ -36,7 +36,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "bevy_sprite",
 ] }
 bevy_image = "0.15"
-bmfont_rs = { version = "0.2.0", features = ["xml"] }
+bmfont_rs = { version = "0.2.1", features = ["xml"] }
 camino = { version = "1.1.9", features = ["serde1"] }
 derive_setters = "0.1.6"
 ron = "0.8.1"
@@ -80,6 +80,11 @@ doc-scrape-examples = true
 
 [[example]]
 name = "atlased_sprite"
+required-features = ["atlas_sprites"]
+doc-scrape-examples = true
+
+[[example]]
+name = "bmf"
 required-features = ["atlas_sprites"]
 doc-scrape-examples = true
 

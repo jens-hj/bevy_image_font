@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Example in `atlased_sprite` to demonstrate `LetterSpacing` usage.
 - Support for fonts that span multiple texture pages.
 - `BmFontLoader` for loading bitmap font file formats (`txt.fnt`, `xml.fnt`, `bin.fnt`).
+- Example (`bmf.rs`) for rendering bitmap fonts (`txt.fnt`, `xml.fnt`, `bin.fnt`). Uses multilingual pangrams to test font rendering in various scripts.
 
 ### Changed
 

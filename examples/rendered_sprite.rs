@@ -42,7 +42,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
         ImageFontPreRenderedText,
         ImageFontText::default()
             .text(TEXT)
-            .font(assets.image_font.clone())
+            .font(assets.example.clone())
             .font_height(36.0),
         // Our font is 45 pixels wide per character, and with an odd number of characters, the
         // text aligns to the middle of a pixel, causing imperfect rendering. Shifting the
@@ -54,7 +54,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
         ImageFontPreRenderedText,
         ImageFontText::default()
             .text(TEXT)
-            .font(assets.image_font.clone()),
+            .font(assets.example.clone()),
         // Instead of shifting the character by 0.5 pixels when the text lands in the middle of
         // a pixel, we can anchor the sprite to an edge and move it by a whole number of pixels.
         // To center it with the text above, we shift it left by half its width.
