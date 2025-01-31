@@ -11,8 +11,13 @@ use bevy::{
 use bevy_image::{Image, ImageSampler};
 use derive_setters::Setters;
 
+mod letter_spacing;
 #[cfg(any(feature = "rendered", feature = "atlas_sprites"))]
-mod filtered_string;
+mod render_context;
+mod scaling_mode;
+
+pub use letter_spacing::*;
+pub use scaling_mode::*;
 
 pub mod loader;
 
@@ -123,8 +128,8 @@ impl ImageFont {
     ///
     /// # Returns
     /// A tuple containing:
-    /// - `HashMap<char, usize>`: A map of characters to their indices in the
-    ///   atlas.
+    /// - `HashMap<char, ImageFontCharacter>`: A map of characters to their
+    ///   atlas placement, including texture page index and character index.
     /// - `TextureAtlasLayout`: The texture atlas layout with the bounding
     ///   rectangles.
     fn mapped_atlas_layout_from_char_map(
@@ -181,29 +186,6 @@ impl ImageFont {
         }
     }
 
-    /// Filters a string to include only characters present in the font's
-    /// character map.
-    ///
-    /// This function returns a
-    /// [`FilteredString`](filtered_string::FilteredString) containing only the
-    /// characters from the input string that exist in the font's
-    /// `atlas_character_map`. It ensures that unsupported characters are
-    /// excluded during rendering.
-    ///
-    /// # Parameters
-    /// - `string`: The input string to filter.
-    ///
-    /// # Returns
-    /// A `FilteredString` returning only characters supported by the font.
-    ///
-    /// # Notes
-    /// This function requires either the `rendered` or `atlas_sprites` feature
-    /// to be enabled.
-    #[cfg(any(feature = "rendered", feature = "atlas_sprites"))]
-    fn filter_string<S: AsRef<str>>(&self, string: S) -> filtered_string::FilteredString<'_, S> {
-        filtered_string::FilteredString::new(string, &self.atlas_character_map)
-    }
-
     /// Retrieves references to the font's textures.
     ///
     /// # Parameters
@@ -223,29 +205,6 @@ impl ImageFont {
             })
             .collect()
     }
-
-    /// Retrieves references to the font's texture atlas layouts.
-    ///
-    /// # Parameters
-    /// - `image_assets`: The asset storage for texture atlas layouts.
-    ///
-    /// # Returns
-    /// A vector of references to the texture atlas layouts used by this font.
-    #[cfg(feature = "rendered")]
-    fn layouts<'assets>(
-        &self,
-        image_assets: &'assets Assets<TextureAtlasLayout>,
-    ) -> Vec<&'assets TextureAtlasLayout> {
-        self.atlas_layouts
-            .iter()
-            .map(|handle| {
-                #[expect(clippy::expect_used, reason = "handle is kept alive by ImageFont")]
-                image_assets
-                    .get(handle)
-                    .expect("handle is kept alive by ImageFont")
-            })
-            .collect()
-    }
 }
 
 /// Represents a character in an [`ImageFont`], storing metadata required for
@@ -256,7 +215,10 @@ impl ImageFont {
 /// that may be useful for rendering, alignment, or future extensions.
 ///
 /// # Fields
-/// - `atlas_index`: The index of the character's glyph in the texture atlas.
+/// - `character_index`: The index of the character's glyph in the texture
+///   atlas.
+/// - `page_index`: The index of the texture atlas page where this character's
+///   glyph is stored.
 /// - *(Planned: Additional metadata fields, such as offsets, kerning, or
 ///   stylistic variants.)*
 ///

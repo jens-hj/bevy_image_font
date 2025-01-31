@@ -17,21 +17,17 @@
 //! This module is intended for advanced text rendering use cases, offering
 //! fine-grained control over how text is displayed in the game world.
 
+use std::fmt::Debug;
+
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use derive_setters::Setters;
 
-use crate::atlas_sprites::anchors::AnchorOffsets;
-use crate::atlas_sprites::render_context::RenderContext;
-use crate::{sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText};
-
-mod anchors;
-mod letter_spacing;
-mod render_context;
-mod scaling_mode;
-
-pub use letter_spacing::*;
-pub use scaling_mode::*;
+use crate::render_context::{RenderConfig, RenderContext};
+use crate::{
+    sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText, LetterSpacing,
+    ScalingMode,
+};
 
 /// Internal plugin for conveniently organizing the code related to this
 /// module's feature.
@@ -95,7 +91,8 @@ pub struct ImageFontSpriteText {
     pub letter_spacing: LetterSpacing,
 }
 
-/// Basically a map between character index and character sprite
+/// Stores a mapping between characters and their corresponding sprite entities.
+/// This is used to manage text rendering at the entity level.
 #[derive(Debug, Clone, Component)]
 struct ImageFontTextData {
     /// The entity that owns this `ImageFontTextData` component.
@@ -154,11 +151,11 @@ pub struct ImageFontGizmoData {
     height: f32,
 }
 
-/// System that renders each [`ImageFontText`] as child [`Sprite`] entities
-/// where each sprite represents a character in the text. That is to say, each
-/// sprite gets positioned accordingly to its position in the text. This
-/// system only runs when the `ImageFontText` or [`ImageFontSpriteText`]
-/// changes.
+/// System that renders each [`ImageFontText`] as child [`Sprite`] entities,
+/// where each sprite represents a character in the text. Each sprite is
+/// positioned based on its order in the text, accounting for letter spacing,
+/// scaling mode, and anchor alignment. This system only runs when the
+/// `ImageFontText` or [`ImageFontSpriteText`] changes.
 #[expect(
     clippy::missing_panics_doc,
     reason = "expect() is only used on a newly created Some() value"
@@ -200,12 +197,37 @@ pub fn set_up_sprites(
                 .expect("newly created Some() value")
         };
 
+        let render_config = RenderConfig {
+            letter_spacing: image_font_sprite_text.letter_spacing.to_f32(),
+            offset_characters: true,
+            apply_scaling: true,
+            scaling_mode: image_font_sprite_text.scaling_mode,
+            color: image_font_sprite_text.color,
+            text_anchor: image_font_sprite_text.anchor,
+        };
+
+        let font_handle = &image_font_text.font;
+        let Some(image_font) = image_fonts.get(font_handle) else {
+            if !image_font_text_data.has_reported_missing_font {
+                let font_handle_detail: &dyn Debug = if let Some(font_path) = font_handle.path() {
+                    font_path
+                } else {
+                    &font_handle.id()
+                };
+                error!(
+                    "ImageFont asset {font_handle_detail:?} is not loaded; can't render text for entity: {}",
+                    image_font_text_data.self_entity
+                );
+                image_font_text_data.has_reported_missing_font = true;
+            }
+            continue;
+        };
+
         let Some(render_context) = RenderContext::new(
-            &image_fonts,
+            image_font,
             image_font_text,
-            image_font_sprite_text,
+            render_config,
             &texture_atlas_layouts,
-            image_font_text_data,
         ) else {
             maybe_insert_new_image_font_text_data(
                 &mut commands,
@@ -332,7 +354,7 @@ fn update_existing_sprites(
             continue;
         };
 
-        render_context.update_sprite_values(character, sprite_texture, &mut sprite.color);
+        render_context.update_render_values(character, sprite_texture, &mut sprite.color);
 
         *transform = render_context.transform(&mut x_pos, character);
 

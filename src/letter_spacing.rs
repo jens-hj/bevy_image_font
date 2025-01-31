@@ -14,13 +14,16 @@
 //!   characters.
 
 use bevy::prelude::*;
-
 /// Specifies the spacing between characters in text rendering.
 ///
 /// This enum provides options for defining the kerning or spacing between
-/// individual characters in a line of text. It supports both pixel-perfect
-/// alignment and precise floating-point adjustments, offering flexibility for
-/// various rendering scenarios.
+/// individual characters in a line of text. When using `Pixel(i16)`, the
+/// spacing is specified in the font's native height and is scaled
+/// proportionally based on the current font height.
+///
+/// It supports both
+/// pixel-perfect alignment and precise floating-point adjustments, offering
+/// flexibility for various rendering scenarios.
 ///
 /// The choice of variant depends on the rendering requirements. For example,
 /// pixel-based spacing is often used in retro-style or low-resolution contexts,

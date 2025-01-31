@@ -28,7 +28,7 @@ use std::fmt;
 
 use bevy::utils::HashMap;
 
-use crate::ImageFontCharacter;
+use crate::{ImageFont, ImageFontCharacter};
 
 /// A wrapper type for filtering characters from a string based on a character
 /// map.
@@ -106,6 +106,30 @@ impl<S: AsRef<str>> fmt::Display for FilteredString<'_, S> {
             write!(formatter, "{character}")?;
         }
         Ok(())
+    }
+}
+
+impl ImageFont {
+    /// Filters a string to include only characters present in the font's
+    /// character map.
+    ///
+    /// This function returns a
+    /// [`FilteredString`](filtered_string::FilteredString) containing only the
+    /// characters from the input string that exist in the font's
+    /// `atlas_character_map`. It ensures that unsupported characters are
+    /// excluded during rendering.
+    ///
+    /// # Parameters
+    /// - `string`: The input string to filter.
+    ///
+    /// # Returns
+    /// A `FilteredString` returning only characters supported by the font.
+    ///
+    /// # Notes
+    /// This function requires either the `rendered` or `atlas_sprites` feature
+    /// to be enabled.
+    pub(super) fn filter_string<S: AsRef<str>>(&self, string: S) -> FilteredString<'_, S> {
+        FilteredString::new(string, &self.atlas_character_map)
     }
 }
 

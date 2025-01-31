@@ -18,7 +18,8 @@
 use bevy::prelude::*;
 
 /// Determines how scaling is applied when calculating the dimensions of a
-/// character glyph.
+/// character glyph. Scaling primarily affects width adjustments, while height
+/// remains proportional to the original glyph aspect ratio.
 ///
 /// This enum is used to control how fractional values are handled when scaling
 /// glyph dimensions to fit a specified font height. It provides options for

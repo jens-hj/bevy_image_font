@@ -27,21 +27,31 @@ use bevy::sprite::Anchor;
 
 /// Extension trait to provide additional functionality for `Anchor`.
 pub(crate) trait AnchorExt {
-    /// Computes the `Anchors` struct directly for the `Anchor` value.
+    /// Computes the `AnchorOffsets` struct directly for the `Anchor` value.
+    ///
+    /// # Parameters
+    /// - `center_characters_horizontally`: If `true`, centers characters
+    ///   horizontally within their text block instead of aligning them flush to
+    ///   the left.
     ///
     /// # Returns
-    /// `Anchors` containing:
+    /// `AnchorOffsets` containing:
     /// - `whole`: Offset for aligning the entire text block.
     /// - `individual`: Offset for aligning each individual glyph.
-    fn to_anchor_offsets(self) -> AnchorOffsets;
+    fn to_anchor_offsets(self, center_characters_horizontally: bool) -> AnchorOffsets;
 }
 
 impl AnchorExt for Anchor {
-    fn to_anchor_offsets(self) -> AnchorOffsets {
+    fn to_anchor_offsets(self, center_characters_horizontally: bool) -> AnchorOffsets {
         let anchor_vec = self.as_vec();
+        let horizontal_offset = if center_characters_horizontally {
+            Vec2::new(0.5, 0.0)
+        } else {
+            Vec2::new(0.0, 0.0)
+        };
         AnchorOffsets {
-            whole: -(anchor_vec + Vec2::new(0.5, 0.0)),
-            individual: Vec2::new(0.5, 0.0),
+            whole: -(anchor_vec + horizontal_offset),
+            individual: horizontal_offset,
         }
     }
 }
@@ -274,19 +284,19 @@ mod tests {
     fn to_anchor_offsets_are_as_expected() {
         // Case 1: Center anchor
         let anchor = Anchor::Center;
-        let offsets = anchor.to_anchor_offsets();
+        let offsets = anchor.to_anchor_offsets(true);
         assert_eq!(offsets.whole, Vec2::new(-0.5, 0.0));
         assert_eq!(offsets.individual, Vec2::new(0.5, 0.0));
 
         // Case 2: Top-left anchor
         let anchor = Anchor::TopLeft;
-        let offsets = anchor.to_anchor_offsets();
+        let offsets = anchor.to_anchor_offsets(true);
         assert_eq!(offsets.whole, Vec2::new(0.0, -0.5));
         assert_eq!(offsets.individual, Vec2::new(0.5, 0.0));
 
         // Case 3: Bottom-right anchor
         let anchor = Anchor::BottomRight;
-        let offsets = anchor.to_anchor_offsets();
+        let offsets = anchor.to_anchor_offsets(true);
         assert_eq!(offsets.whole, Vec2::new(-1.0, 0.5));
         assert_eq!(offsets.individual, Vec2::new(0.5, 0.0));
     }

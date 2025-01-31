@@ -9,8 +9,10 @@
 //! - Font assets, texture atlases, and associated metadata.
 //! - Cached computations for glyph dimensions, text width, and alignment
 //!   offsets.
-//! - Helper methods for transforming and configuring sprites based on text
-//!   content.
+//! - Handles text positioning and scaling for both `atlas_sprites`
+//!   (sprite-based) and `rendered` (pre-rendered image-based) text rendering.
+//!   This centralizes font asset access, text dimension calculations, and
+//!   alignment logic.
 //!
 //! By consolidating these responsibilities, `RenderContext` reduces code
 //! duplication and makes rendering logic more maintainable.
@@ -20,8 +22,8 @@
 //!   texture atlas assets.
 //! - **Text Calculations**: Computes text dimensions, glyph dimensions, and
 //!   scaling factors.
-//! - **Sprite Configuration**: Provides methods for updating sprite transforms,
-//!   colors, and textures.
+//! - **Unified Rendering Support**: Handles both `atlas_sprites` (sprite-based)
+//!   and `rendered` (pre-rendered image-based) text rendering.
 //! - **Caching**: Uses `CacheCell` to lazily compute and store values like
 //!   maximum height and anchor offsets.
 //!
@@ -29,14 +31,18 @@
 //! and is designed to work seamlessly with other components, such as
 //! `SpriteContext`.
 
+mod anchors;
+mod filtered_string;
+
 use std::cell::Cell;
 use std::fmt::Debug;
 
 use bevy::prelude::*;
+use bevy::sprite::Anchor;
 
-use crate::atlas_sprites::anchors::AnchorExt as _;
-use crate::atlas_sprites::{AnchorOffsets, ImageFontSpriteText, ImageFontTextData};
-use crate::filtered_string::FilteredString;
+use crate::render_context::anchors::{AnchorExt as _, AnchorOffsets};
+use crate::render_context::filtered_string::FilteredString;
+use crate::ScalingMode;
 use crate::{ImageFont, ImageFontText};
 
 /// Groups font-related assets and configuration for rendering text sprites.
@@ -50,9 +56,9 @@ pub(crate) struct RenderContext<'assets> {
     image_font: &'assets ImageFont,
     /// The text component defining the content and font height.
     image_font_text: &'assets ImageFontText,
-    /// The sprite configuration for rendering the text, including letter
-    /// spacing and scaling mode.
-    image_font_sprite_text: &'assets ImageFontSpriteText,
+    /// Configuration for rendering the text, including anchor alignment,
+    /// color, letter spacing, and scaling behavior.
+    pub render_config: RenderConfig,
     /// The text filtered to include only supported characters in the font
     /// atlas.
     filtered_text: FilteredString<'assets, &'assets String>,
@@ -62,46 +68,30 @@ pub(crate) struct RenderContext<'assets> {
 }
 
 impl<'assets> RenderContext<'assets> {
-    /// Fetches the font and texture atlas assets needed for rendering text.
+    /// Creates a new `RenderContext` for rendering text using an `ImageFont`.
     ///
-    /// Ensures that both the `ImageFont` and its associated
-    /// `TextureAtlasLayout` are available. Logs an error if any required
-    /// asset is missing.
+    /// This function retrieves the necessary assets, filters the text to
+    /// exclude unsupported characters, and initializes cached computations
+    /// for rendering.
     ///
     /// # Parameters
-    /// - `image_fonts`: The collection of loaded font assets.
-    /// - `font_handle`: Handle to the `ImageFont` asset to fetch.
-    /// - `texture_atlas_layouts`: The collection of loaded texture atlas
+    /// - `image_font`: A reference to the loaded `ImageFont` asset.
+    /// - `image_font_text`: A reference to the `ImageFontText` component
+    ///   containing the text.
+    /// - `render_config`: Rendering options such as color, anchor alignment,
+    ///   letter spacing, and scaling mode.
+    /// - `texture_atlas_layouts`: The asset collection containing texture atlas
     ///   layouts.
     ///
     /// # Returns
-    /// An `Option` containing a tuple `(image_font, layout)` if both assets are
-    /// successfully retrieved, or `None` if any asset is missing.
-    #[inline]
+    /// - `Some(RenderContext)`: If all required assets are available.
+    /// - `None`: If the font or texture atlas layouts are missing.
     pub(crate) fn new(
-        image_fonts: &'assets Assets<ImageFont>,
+        image_font: &'assets ImageFont,
         image_font_text: &'assets ImageFontText,
-        image_font_sprite_text: &'assets ImageFontSpriteText,
+        render_config: RenderConfig,
         texture_atlas_layouts: &'assets Assets<TextureAtlasLayout>,
-        image_font_text_data: &mut ImageFontTextData,
     ) -> Option<Self> {
-        let font_handle = &image_font_text.font;
-        let Some(image_font) = image_fonts.get(font_handle) else {
-            if !image_font_text_data.has_reported_missing_font {
-                let font_handle_detail: &dyn Debug = if let Some(font_path) = font_handle.path() {
-                    font_path
-                } else {
-                    &font_handle.id()
-                };
-                error!(
-                    "ImageFont asset {font_handle_detail:?} is not loaded; can't render text for entity: {}",
-                    image_font_text_data.self_entity
-                );
-                image_font_text_data.has_reported_missing_font = true;
-            }
-            return None;
-        };
-
         let atlas_layouts: Result<Vec<_>, _> = image_font
             .atlas_layouts
             .iter()
@@ -128,7 +118,7 @@ impl<'assets> RenderContext<'assets> {
             atlas_layouts,
             image_font,
             image_font_text,
-            image_font_sprite_text,
+            render_config,
             filtered_text,
 
             max_height: default(),
@@ -194,48 +184,55 @@ impl<'assets> RenderContext<'assets> {
         text_width
     }
 
-    /// Computes the dimensions of a glyph for a given character, scaled if a
-    /// specific font height is provided.
+    /// Computes the dimensions of a glyph for a given character, applying
+    /// scaling if a specific font height is provided.
     ///
-    /// The dimensions are calculated based on the character's bounding
-    /// rectangle in the texture atlas, along with the scaling mode and
-    /// letter spacing settings configured in the context.
+    /// The dimensions are determined using the character's bounding rectangle
+    /// in the texture atlas, the configured letter spacing, and the
+    /// selected `ScalingMode`. Additionally, if
+    /// `RenderConfig::apply_scaling` is `true`, width scaling is
+    /// applied before rounding or truncation, ensuring consistent proportions
+    /// in certain scaling modes.
     ///
     /// # Parameters
     /// - `character`: The character whose dimensions are being computed.
     ///
     /// # Returns
-    /// A tuple `(width, height)` representing the scaled or raw dimensions of
-    /// the glyph.
+    /// A tuple `(width, height)` representing the computed dimensions of the
+    /// glyph, where width scaling behavior depends on
+    /// `RenderConfig::apply_scaling`.
     #[expect(
         clippy::cast_precision_loss,
         reason = "the magnitude of the numbers we're working on here are too small to lose anything"
     )]
-    #[inline]
     pub(crate) fn character_dimensions(&self, character: char) -> (f32, f32) {
         let image_font_character = &self.image_font.atlas_character_map[&character];
         let rect = self.atlas_layouts[image_font_character.page_index].textures
             [image_font_character.character_index];
-        let letter_spacing = self.image_font_sprite_text.letter_spacing.to_f32();
+        let letter_spacing = self.render_config.letter_spacing;
         let width = rect.width() as f32 + letter_spacing;
         let height = rect.height() as f32;
         let max_height = self.max_height() as f32;
 
         if let Some(font_height) = self.image_font_text.font_height {
-            let scaling_mode = self.image_font_sprite_text.scaling_mode;
-            let scale_factor = font_height / max_height;
-            (
-                scaling_mode.apply_scale(width, scale_factor),
-                scaling_mode.apply_scale(height, scale_factor),
-            )
-        } else {
-            (width, height)
+            if self.render_config.apply_scaling {
+                let scaling_mode = self.render_config.scaling_mode;
+                let scale_factor = font_height / max_height;
+                return (
+                    scaling_mode.apply_scale(width, scale_factor),
+                    scaling_mode.apply_scale(height, scale_factor),
+                );
+            }
         }
+
+        (width, height)
     }
 
     /// Retrieves the handle to the font texture image.
     ///
     /// This handle is used to assign the appropriate image to a text sprite.
+    #[inline]
+    #[cfg(feature = "atlas_sprites")]
     pub(crate) fn font_image(&self, character: char) -> Handle<Image> {
         let image_font_character = &self.image_font.atlas_character_map[&character];
 
@@ -252,6 +249,7 @@ impl<'assets> RenderContext<'assets> {
     ///
     /// # Returns
     /// A [`TextureAtlas`] structure containing the layout and character index.
+    #[inline]
     pub(crate) fn font_texture_atlas(&self, character: char) -> TextureAtlas {
         let image_font_character = &self.image_font.atlas_character_map[&character];
         TextureAtlas {
@@ -265,39 +263,53 @@ impl<'assets> RenderContext<'assets> {
     ///
     /// The filtered text excludes unsupported or invalid characters, ensuring
     /// that only renderable glyphs are processed.
+    #[inline]
     pub(crate) fn text(&self) -> &FilteredString<'_, &String> {
         &self.filtered_text
     }
 
-    /// Updates the sprite's texture and color values based on a specific
-    /// character.
+    /// Updates the texture index for the specified character and assigns the
+    /// configured color.
+    ///
+    /// This function assigns the correct glyph index from the font atlas to
+    /// `texture_atlas`, ensuring that the correct character is selected for
+    /// rendering. Additionally, it assigns the configured text color from
+    /// `RenderConfig` to `color`.
     ///
     /// # Parameters
-    /// - `character`: The character associated with the sprite.
-    /// - `texture_atlas`: The sprite's texture atlas, which is updated with the
+    /// - `character`: The character whose corresponding glyph should be used.
+    /// - `texture_atlas`: The texture atlas entry that will be updated with the
     ///   character's index.
-    /// - `color`: The sprite's color, which is set to the configured font
-    ///   color.
-    pub(crate) fn update_sprite_values(
+    /// - `color`: The variable that will be assigned the value of
+    ///   `RenderConfig::color`.
+    #[inline]
+    pub(crate) fn update_render_values(
         &self,
         character: char,
         texture_atlas: &mut TextureAtlas,
         color: &mut Color,
     ) {
         texture_atlas.index = self.image_font.atlas_character_map[&character].character_index;
-        *color = self.image_font_sprite_text.color;
+        *color = self.render_config.color;
     }
 
     /// Computes or retrieves the cached anchor offsets for the text and glyph
     /// alignment.
     ///
-    /// The anchor offsets include:
-    /// - `whole`: Alignment for the entire text block.
-    /// - `individual`: Alignment for each glyph relative to the text block.
+    /// The computed offsets depend on the `render_config.offset_characters`
+    /// setting:
+    /// - If `true`, per-character offsets are applied to adjust positioning.
+    /// - If `false`, glyphs are aligned strictly according to the text anchor.
     ///
-    /// The offsets are computed lazily and cached for reuse.
+    /// # Returns
+    /// An [`AnchorOffsets`] struct containing:
+    /// - `whole`: Offset for aligning the entire text block.
+    /// - `individual`: Offset for aligning each individual glyph.
+    #[inline]
     pub(crate) fn anchor_offsets(&self) -> AnchorOffsets {
-        self.image_font_sprite_text.anchor.to_anchor_offsets()
+        self.render_config
+            .text_anchor
+            .to_anchor_offsets(self.render_config.offset_characters)
     }
 
     /// Computes the transform for positioning and scaling a text sprite.
@@ -314,6 +326,7 @@ impl<'assets> RenderContext<'assets> {
     ///
     /// # Returns
     /// A [`Transform`] representing the position and scale of the sprite.
+    #[inline]
     pub(crate) fn transform(&self, x_pos: &mut f32, character: char) -> Transform {
         let x = *x_pos;
         let (width, _) = self.character_dimensions(character);
@@ -326,6 +339,57 @@ impl<'assets> RenderContext<'assets> {
             self.scale(),
         )
     }
+}
+
+/// Configuration settings for rendering text using an `ImageFont`.
+///
+/// This struct controls how text is rendered, including alignment, spacing,
+/// scaling, and color settings. It is passed to `RenderContext` to determine
+/// rendering behavior.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct RenderConfig {
+    /// The anchor point used to align the rendered text.
+    ///
+    /// This defines how the text is positioned relative to its origin.
+    /// For example, `Anchor::TopLeft` aligns the text's top-left corner to its
+    /// position.
+    pub text_anchor: Anchor,
+
+    /// Determines whether individual characters should have per-character
+    /// offsets applied.
+    ///
+    /// When `true`, additional spacing adjustments are made based on each
+    /// character's properties. This setting affects how characters are
+    /// positioned relative to each other.
+    pub offset_characters: bool,
+
+    /// Controls whether glyph dimensions should be scaled when a specific font
+    /// height is set.
+    ///
+    /// When `true`, glyphs are scaled proportionally based on the desired font
+    /// height. The scaling behavior is further influenced by the
+    /// `scaling_mode` setting.
+    pub apply_scaling: bool,
+
+    /// The amount of space added between characters when rendering text.
+    ///
+    /// This value is specified at the font’s native height and is scaled
+    /// accordingly when the text is resized.
+    pub letter_spacing: f32,
+
+    /// Determines how fractional values are handled when scaling glyph
+    /// dimensions.
+    ///
+    /// This setting controls whether scaled dimensions are rounded, truncated,
+    /// or left as floating-point values, influencing text rendering
+    /// precision.
+    pub scaling_mode: ScalingMode,
+
+    /// The color applied to the rendered text.
+    ///
+    /// This affects all glyphs uniformly, allowing text to be tinted or styled
+    /// dynamically.
+    pub color: Color,
 }
 
 /// A lightweight wrapper around a [`Cell<Option<T>>`] for caching values.

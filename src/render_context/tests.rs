@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use bevy::color::palettes::css;
 use float_eq::assert_float_eq;
 
@@ -20,16 +18,6 @@ fn render_context_creation() {
         |_| {},
         |render_context| {
             assert!(render_context.is_some());
-        },
-    );
-
-    // Test invalid creation (missing font asset)
-    render_context_tester.modify_and_then_test_with(
-        |tester| {
-            tester.image_font_text.font = default();
-        },
-        |render_context| {
-            assert!(render_context.is_none());
         },
     );
 }
@@ -239,9 +227,9 @@ fn anchor_offsets() {
         assert_eq!(
             offsets,
             render_context
-                .image_font_sprite_text
-                .anchor
-                .to_anchor_offsets()
+                .render_config
+                .text_anchor
+                .to_anchor_offsets(true)
         );
     });
 }
@@ -293,16 +281,16 @@ fn update_sprite_values() {
             texture_atlas.index,
             render_context.image_font.atlas_character_map[&first_char].character_index
         );
-        assert_ne!(color, render_context.image_font_sprite_text.color);
+        assert_ne!(color, render_context.render_config.color);
 
-        render_context.update_sprite_values(first_char, &mut texture_atlas, &mut color);
+        render_context.update_render_values(first_char, &mut texture_atlas, &mut color);
 
         // Verify the texture atlas and color are updated
         assert_eq!(
             texture_atlas.index,
             render_context.image_font.atlas_character_map[&first_char].character_index
         );
-        assert_eq!(color, render_context.image_font_sprite_text.color);
+        assert_eq!(color, render_context.render_config.color);
     });
 }
 
@@ -360,10 +348,9 @@ fn large_text_block() {
 #[derive(Clone)]
 struct RenderContextTester<'app> {
     image_font_text: ImageFontText,
-    image_font_text_data: RefCell<ImageFontTextData>,
-    image_font_sprite_text: ImageFontSpriteText,
     image_font_assets: &'app Assets<ImageFont>,
     atlas_layout_assets: &'app Assets<TextureAtlasLayout>,
+    render_config: RenderConfig,
 }
 
 impl<'app> RenderContextTester<'app> {
@@ -374,34 +361,37 @@ impl<'app> RenderContextTester<'app> {
             font_height: None,
         };
 
-        let image_font_sprite_text = ImageFontSpriteText::default();
-
         let image_font_assets = app.world().resource::<Assets<ImageFont>>();
 
         let atlas_layout_assets = app.world().resource::<Assets<TextureAtlasLayout>>();
 
         Self {
             image_font_text,
-            image_font_text_data: ImageFontTextData::new(Entity::PLACEHOLDER).into(),
-            image_font_sprite_text,
+            render_config: RenderConfig {
+                offset_characters: true,
+                ..default()
+            },
             image_font_assets,
             atlas_layout_assets,
         }
     }
 
     fn test_with_defaults(&self, test_func: impl FnOnce(RenderContext<'_>)) {
+        let font_handle = &self.image_font_text.font;
+        let image_font = self.image_font_assets.get(font_handle).unwrap();
+
         let render_context = RenderContext::new(
-            self.image_font_assets,
+            image_font,
             &self.image_font_text,
-            &self.image_font_sprite_text,
+            self.render_config,
             self.atlas_layout_assets,
-            &mut self.image_font_text_data.borrow_mut(),
         )
         .unwrap();
 
         test_func(render_context);
     }
 
+    #[track_caller]
     fn modify_and_then_test_with(
         &self,
         modify_func: impl FnOnce(&mut Self),
@@ -410,12 +400,14 @@ impl<'app> RenderContextTester<'app> {
         let mut modified_clone = self.clone();
         modify_func(&mut modified_clone);
 
+        let font_handle = &modified_clone.image_font_text.font;
+        let image_font = modified_clone.image_font_assets.get(font_handle).unwrap();
+
         let render_context = RenderContext::new(
-            modified_clone.image_font_assets,
+            image_font,
             &modified_clone.image_font_text,
-            &modified_clone.image_font_sprite_text,
+            modified_clone.render_config,
             modified_clone.atlas_layout_assets,
-            &mut self.image_font_text_data.borrow_mut(),
         );
 
         test_func(render_context);
