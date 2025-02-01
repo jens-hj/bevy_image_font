@@ -1,4 +1,6 @@
 #![allow(clippy::unwrap_used, reason = "test code panics to indicate errors")]
+use bevy::utils::default;
+
 use super::*;
 
 #[test]
@@ -9,6 +11,7 @@ fn filters_chars() {
         ImageFontCharacter {
             page_index: 0,
             character_index: 1,
+            ..default()
         },
     );
     atlas_character_map.insert(
@@ -16,6 +19,7 @@ fn filters_chars() {
         ImageFontCharacter {
             page_index: 0,
             character_index: 2,
+            ..default()
         },
     );
 
@@ -33,6 +37,7 @@ fn is_empty_when_no_characters_retained() {
         ImageFontCharacter {
             page_index: 0,
             character_index: 1,
+            ..default()
         },
     );
     atlas_character_map.insert(
@@ -40,6 +45,7 @@ fn is_empty_when_no_characters_retained() {
         ImageFontCharacter {
             page_index: 0,
             character_index: 2,
+            ..default()
         },
     );
 
@@ -56,6 +62,7 @@ fn is_not_empty_when_characters_retained() {
         ImageFontCharacter {
             page_index: 0,
             character_index: 1,
+            ..default()
         },
     );
 
@@ -72,6 +79,7 @@ fn display_shows_filtered_text() {
         ImageFontCharacter {
             page_index: 0,
             character_index: 1,
+            ..default()
         },
     );
     atlas_character_map.insert(
@@ -79,6 +87,7 @@ fn display_shows_filtered_text() {
         ImageFontCharacter {
             page_index: 0,
             character_index: 2,
+            ..default()
         },
     );
 
@@ -101,6 +110,7 @@ fn test_image_font_filter_string() {
         ImageFontCharacter {
             page_index: 0,
             character_index: 0,
+            ..default()
         },
     );
     atlas_character_map.insert(
@@ -108,6 +118,7 @@ fn test_image_font_filter_string() {
         ImageFontCharacter {
             page_index: 0,
             character_index: 1,
+            ..default()
         },
     );
     let font = ImageFont {

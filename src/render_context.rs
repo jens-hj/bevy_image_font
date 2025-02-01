@@ -40,7 +40,7 @@ use std::fmt::Debug;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 
-use crate::render_context::anchors::{AnchorExt as _, AnchorOffsets};
+use crate::render_context::anchors::{AnchorExt as _, AnchorOffsets, ComputeTransformParams};
 use crate::render_context::filtered_string::FilteredString;
 use crate::ScalingMode;
 use crate::{ImageFont, ImageFontText};
@@ -228,6 +228,42 @@ impl<'assets> RenderContext<'assets> {
         (width, height)
     }
 
+    /// Retrieves the offset for positioning a specific character in the text
+    /// layout.
+    ///
+    /// This offset is used to correctly align the character within the text,
+    /// based on font metadata. It accounts for individual glyph positioning
+    /// adjustments relative to the baseline.
+    ///
+    /// # Parameters
+    /// - `character`: The character whose offset should be retrieved.
+    ///
+    /// # Returns
+    /// A [`Vec2`] containing the X and Y offsets for the character.
+    #[inline]
+    pub(crate) fn character_offsets(&self, character: char) -> Vec2 {
+        let image_font_character = &self.image_font.atlas_character_map[&character];
+        image_font_character.offsets
+    }
+
+    /// Retrieves the horizontal advance for a given character.
+    ///
+    /// The advance value determines how much horizontal space the character
+    /// should take up in the rendered text. It is used to correctly space
+    /// characters relative to each other.
+    ///
+    /// # Parameters
+    /// - `character`: The character whose advance width should be retrieved.
+    ///
+    /// # Returns
+    /// - `Some(f32)`: If the font specifies an advance width for the character.
+    /// - `None`: If no specific advance width is defined.
+    #[inline]
+    pub(crate) fn character_x_advance(&self, character: char) -> Option<f32> {
+        let image_font_character = &self.image_font.atlas_character_map[&character];
+        image_font_character.x_advance
+    }
+
     /// Retrieves the handle to the font texture image.
     ///
     /// This handle is used to assign the appropriate image to a text sprite.
@@ -329,15 +365,19 @@ impl<'assets> RenderContext<'assets> {
     #[inline]
     pub(crate) fn transform(&self, x_pos: &mut f32, character: char) -> Transform {
         let x = *x_pos;
-        let (width, _) = self.character_dimensions(character);
-        *x_pos += width;
-        self.anchor_offsets().compute_transform(
-            x,
-            self.text_width(),
-            width,
-            self.max_height(),
-            self.scale(),
-        )
+        let (width, height) = self.character_dimensions(character);
+        *x_pos += self.character_x_advance(character).unwrap_or(width);
+
+        let params = ComputeTransformParams {
+            x_pos: x,
+            scaled_text_width: self.text_width(),
+            scaled_width: width,
+            scaled_height: height,
+            max_height: self.max_height(),
+            character_offsets: self.character_offsets(character),
+            scale: self.scale(),
+        };
+        self.anchor_offsets().compute_transform(params)
     }
 }
 

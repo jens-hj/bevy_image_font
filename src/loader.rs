@@ -3,7 +3,6 @@
 #![expect(clippy::absolute_paths, reason = "false positives")]
 
 use std::io::Error as IoError;
-use std::path::PathBuf;
 
 use bevy::{
     asset::{io::Reader, AssetLoader, LoadContext, LoadDirectError},
@@ -11,7 +10,7 @@ use bevy::{
     utils::HashMap,
 };
 use bevy_image::{Image, ImageSampler, ImageSamplerDescriptor};
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::{FromPathError, Utf8Path, Utf8PathBuf};
 use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -375,7 +374,7 @@ pub enum ImageFontLoadError {
     /// may occur if the file is in an unsupported format or if the path is
     /// incorrect.
     #[error("Path is not valid UTF-8: {0:?}")]
-    InvalidPath(PathBuf),
+    InvalidPath(FromPathError),
 
     /// The asset path has no parent directory.
     #[error("Asset path has no parent directory")]
@@ -441,9 +440,9 @@ impl AssetLoader for ImageFontLoader {
             .await?
             .take::<Image>()
         else {
-            let path = match Utf8PathBuf::from_path_buf(image_path) {
+            let path = match Utf8PathBuf::try_from(image_path) {
                 Ok(path) => path,
-                Err(image_path) => return Err(ImageFontLoadError::InvalidPath(image_path)),
+                Err(error) => return Err(ImageFontLoadError::InvalidPath(error.from_path_error())),
             };
             return Err(ImageFontLoadError::NotAnImage(path));
         };

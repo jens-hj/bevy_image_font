@@ -145,6 +145,7 @@ impl ImageFont {
                 ImageFontCharacter {
                     page_index: page,
                     character_index: atlas_layout.add_texture(rect),
+                    ..default()
                 },
             );
         }
@@ -227,7 +228,7 @@ impl ImageFont {
 /// - **Kerning Information:** Adjustments for character spacing.
 /// - **Per-Character Offsets:** Fine-tuned positioning for different glyphs.
 /// - **Stylistic Variants:** Alternative representations of characters.
-#[derive(Debug, Clone, Reflect)]
+#[derive(Clone, Debug, Default, Reflect)]
 #[non_exhaustive]
 pub struct ImageFontCharacter {
     /// The index of this character's glyph in the texture atlas given by
@@ -244,6 +245,13 @@ pub struct ImageFontCharacter {
     /// When a font spans multiple textures, this field identifies which
     /// specific texture contains the glyph.
     pub page_index: usize,
+
+    /// How to move the character relative to the baseline.
+    pub offsets: Vec2,
+
+    /// How much to advance the x position after rendering the character. `None`
+    /// means use character width.
+    pub x_advance: Option<f32>,
 }
 
 /// Text rendered using an [`ImageFont`].
@@ -259,6 +267,7 @@ pub struct ImageFontText {
     /// If set, overrides the height the font is rendered at. This should be an
     /// integer multiple of the 'native' height if you want pixel accuracy,
     /// but we allow float values for things like animations.
+    #[doc(alias = "line_height")]
     pub font_height: Option<f32>,
 }
 

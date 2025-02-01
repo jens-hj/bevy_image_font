@@ -68,47 +68,83 @@ pub(crate) struct AnchorOffsets {
 impl AnchorOffsets {
     /// Computes the transform for positioning and scaling a text sprite.
     ///
-    /// This method calculates the translation and scaling for a sprite based
-    /// on:
-    /// - The `whole` offset: Used for aligning the entire text block.
-    /// - The `individual` offset: Used for aligning each glyph relative to the
-    ///   text block.
+    /// This method calculates the sprite's translation and scale based on
+    /// various text alignment and glyph positioning parameters.
     ///
-    /// Intermediate calculations use `Vec2`, as the `z` component is
-    /// unnecessary until constructing the final `Transform`.
+    /// If scale is 0, this function sets the y position to 0.
     ///
     /// # Parameters
-    /// - `x_pos`: Current x-position of the sprite.
-    /// - `text_width`: Total width of the text block.
-    /// - `width`: Width of the current glyph.
-    /// - `max_height`: Maximum height of the text block.
-    /// - `scale`: Scaling factor for glyph dimensions.
-    /// - `whole_anchor`: Offset for aligning the entire text block.
-    /// - `individual_anchor`: Offset for aligning the individual glyph.
+    /// - `params`: A [`ComputeTransformParams`] struct containing all necessary
+    ///   values for computing the transform.
     ///
     /// # Returns
-    /// A `Transform` object representing the sprite's position and scale.
+    /// A [`Transform`] representing the position and scale of the text glyph.
     #[inline]
-    pub(crate) fn compute_transform(
-        self,
-        x_pos: f32,
-        text_width: f32,
-        width: f32,
-        max_height: u32,
-        scale: f32,
-    ) -> Transform {
+    pub(crate) fn compute_transform(self, params: ComputeTransformParams) -> Transform {
+        let ComputeTransformParams {
+            x_pos,
+            scaled_text_width,
+            scaled_width,
+            scaled_height,
+            max_height,
+            character_offsets,
+            scale,
+        } = params;
+
         // Step 1: Start with the base x_pos translation
         let mut translation = base_translation(x_pos);
 
         // Step 2: Apply the whole offset contribution
-        apply_whole_offset(&mut translation, text_width, max_height, scale, self.whole);
+        apply_whole_offset(
+            &mut translation,
+            scaled_text_width,
+            max_height,
+            scale,
+            self.whole,
+        );
 
         // Step 3: Apply the individual offset contribution
-        apply_individual_offset(&mut translation, width, self.individual);
+        apply_individual_offset(&mut translation, scaled_width, self.individual);
 
-        // Step 4: Finalize the transform
+        // Step 4: account for height
+        #[expect(clippy::cast_precision_loss, reason = "numbers are small enough")]
+        {
+            let mut height = scaled_height / scale;
+            if !height.is_finite() {
+                height = 0.0;
+            }
+
+            translation += Vec2::new(0.0, max_height as f32 - height) * scale * 0.5;
+        }
+
+        // Step 5: Apply character offsets
+        translation += character_offsets * scale;
+
+        // Step 6: Finalize the transform
         finalize_transform(translation, scale)
     }
+}
+
+/// Parameters required to compute a glyph's transform.
+///
+/// This struct encapsulates all necessary values to determine the glyph's
+/// position and scaling, reducing the number of parameters passed to
+/// [`AnchorOffsets::compute_transform`].
+pub(crate) struct ComputeTransformParams {
+    /// The x-position of the glyph.
+    pub x_pos: f32,
+    /// The total width of the rendered text.
+    pub scaled_text_width: f32,
+    /// The width of the current glyph.
+    pub scaled_width: f32,
+    /// The height of the current glyph.
+    pub scaled_height: f32,
+    /// The maximum height of the text block.
+    pub max_height: u32,
+    /// The per-character offsets applied to the glyph.
+    pub character_offsets: Vec2,
+    /// The uniform scaling factor applied to the glyph.
+    pub scale: f32,
 }
 
 /// Creates the initial base translation for a sprite.
@@ -270,12 +306,30 @@ mod tests {
         };
 
         // Case 1: Normal parameters
-        let transform = offsets.compute_transform(10.0, 20.0, 5.0, 30, 1.5);
-        assert_eq!(transform.translation, Vec3::new(32.5, -45.0, 0.0));
+        let params = ComputeTransformParams {
+            x_pos: 10.0,
+            scaled_text_width: 20.0,
+            scaled_width: 5.0,
+            scaled_height: 20.,
+            max_height: 30,
+            character_offsets: Vec2::ZERO,
+            scale: 1.5,
+        };
+        let transform = offsets.compute_transform(params);
+        assert_eq!(transform.translation, Vec3::new(32.5, -32.5, 0.0));
         assert_eq!(transform.scale, Vec3::new(1.5, 1.5, 0.0));
 
         // Case 2: Zero scaling factor
-        let transform = offsets.compute_transform(0.0, 10.0, 2.0, 50, 0.0);
+        let params = ComputeTransformParams {
+            x_pos: 0.0,
+            scaled_text_width: 10.0,
+            scaled_width: 2.0,
+            scaled_height: 5.0,
+            max_height: 50,
+            character_offsets: Vec2::ZERO,
+            scale: 0.0,
+        };
+        let transform = offsets.compute_transform(params);
         assert_eq!(transform.translation, Vec3::new(11.0, 0.0, 0.0));
         assert_eq!(transform.scale, Vec3::new(0.0, 0.0, 0.0));
     }
