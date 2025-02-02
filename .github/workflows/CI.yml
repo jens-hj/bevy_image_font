@@ -14,13 +14,14 @@ on:
 
 env:
     CARGO_TERM_COLOR: always
+    RUSTFLAGS: "--cfg ci"
 
 jobs:
     check:
         name: Check
         runs-on: ubuntu-latest
         env:
-            RUSTFLAGS: -Dwarnings
+            RUSTFLAGS: "-Dwarnings --cfg ci"
             RUST_BACKTRACE: 1
         steps:
             - uses: actions/checkout@v4
