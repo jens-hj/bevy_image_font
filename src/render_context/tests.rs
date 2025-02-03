@@ -9,6 +9,7 @@ use crate::tests::utils::{
 };
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 fn render_context_creation() {
     let (app, handle) = initialize_app_with_loaded_example_font(ExampleFont::Monospace);
     let render_context_tester = RenderContextTester::new(&app, handle);
@@ -23,6 +24,7 @@ fn render_context_creation() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 #[expect(
     clippy::cast_precision_loss,
     reason = "the magnitude of the numbers we're working on here are too small to lose \
@@ -64,6 +66,7 @@ fn scale() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 #[expect(
     clippy::cast_precision_loss,
     reason = "the magnitude of the numbers we're working on here are too small to lose \
@@ -107,6 +110,7 @@ fn extreme_scale_works() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 fn max_height() {
     let (app, handle) = initialize_app_with_loaded_example_font(ExampleFont::Monospace);
     let render_context_tester = RenderContextTester::new(&app, handle);
@@ -122,6 +126,7 @@ fn max_height() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 #[expect(
     clippy::cast_precision_loss,
     reason = "the magnitude of the numbers we're working on here are too small to lose \
@@ -145,6 +150,7 @@ fn text_width() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 #[expect(
     clippy::cast_precision_loss,
     reason = "the magnitude of the numbers we're working on here are too small to lose \
@@ -172,6 +178,7 @@ fn character_dimensions() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 #[expect(
     clippy::cast_precision_loss,
     reason = "the magnitude of the numbers we're working on here are too small to lose \
@@ -216,6 +223,7 @@ fn test_mixed_character_widths() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 fn anchor_offsets() {
     let (app, handle) = initialize_app_with_loaded_example_font(ExampleFont::Monospace);
     let render_context_tester = RenderContextTester::new(&app, handle);
@@ -235,6 +243,7 @@ fn anchor_offsets() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 #[expect(
     clippy::cast_precision_loss,
     reason = "the magnitude of the numbers we're working on here are too small to lose \
@@ -265,6 +274,7 @@ fn transform() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 fn update_sprite_values() {
     let (app, handle) = initialize_app_with_loaded_example_font(ExampleFont::Monospace);
     let render_context_tester = RenderContextTester::new(&app, handle);
@@ -295,6 +305,7 @@ fn update_sprite_values() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 fn empty_text() {
     let (app, handle) = initialize_app_with_loaded_example_font(ExampleFont::Monospace);
     let render_context_tester = RenderContextTester::new(&app, handle);
@@ -318,6 +329,7 @@ fn empty_text() {
 }
 
 #[test]
+#[cfg_attr(feature = "gizmos", ignore = "test cannot run with `gizmos` feature")]
 #[expect(
     clippy::cast_precision_loss,
     reason = "the magnitude of the numbers we're working on here are too small to lose \

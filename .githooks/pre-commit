@@ -9,5 +9,5 @@ if git diff --cached --quiet -- "*.rs" README.md Cargo.toml rustfmt.toml rust-to
 fi
 
 cargo fmt --all --check
-cargo hack --feature-powerset clippy --all-targets --exclude-features default --group-features gizmos,DO_NOT_USE_internal_tests_disable_gizmos -- -D warnings
+cargo hack --feature-powerset clippy --all-targets --exclude-features default -- -D warnings
 cargo test --all-features

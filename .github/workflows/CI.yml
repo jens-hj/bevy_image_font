@@ -104,7 +104,7 @@ jobs:
 
             - name: Cargo test
               id: tests
-              run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace --exclude-features default --group-features gizmos,DO_NOT_USE_internal_tests_disable_gizmos
+              run: cargo hack --feature-powerset --keep-going test --no-fail-fast --workspace --exclude-features default
 
             # - name: Cargo test
             #   id: tests

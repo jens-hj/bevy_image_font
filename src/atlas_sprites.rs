@@ -17,6 +17,9 @@
 //! This module is intended for advanced text rendering use cases, offering
 //! fine-grained control over how text is displayed in the game world.
 
+#[cfg(feature = "gizmos")]
+pub mod gizmos;
+
 use std::fmt::Debug;
 
 use bevy::prelude::*;
@@ -43,12 +46,9 @@ impl Plugin for AtlasSpritesPlugin {
                 .in_set(ImageFontSet),
         );
 
-        #[cfg(all(
-            feature = "gizmos",
-            not(feature = "DO_NOT_USE_internal_tests_disable_gizmos")
-        ))]
+        #[cfg(feature = "gizmos")]
         {
-            app.add_systems(Update, render_sprite_gizmos);
+            gizmos::build(app);
         }
     }
 }
@@ -114,6 +114,15 @@ struct ImageFontTextData {
     ///   reported.
     /// - Set to `true` after the first error message is logged.
     has_reported_missing_font: bool,
+
+    /// Stores debugging information for visualizing `ImageFontSpriteText` in
+    /// the scene.
+    ///
+    /// This field is only available when the `gizmos` feature is enabled. It
+    /// tracks glyph dimensions and other relevant data used for rendering
+    /// debug gizmos, such as bounding boxes and anchor points.
+    #[cfg(feature = "gizmos")]
+    gizmo_data: gizmos::ImageFontTextGizmoData,
 }
 impl ImageFontTextData {
     /// Creates a new `ImageFontTextData` instance for a given entity.
@@ -133,22 +142,10 @@ impl ImageFontTextData {
             self_entity: entity,
             sprites: default(),
             has_reported_missing_font: default(),
+            #[cfg(feature = "gizmos")]
+            gizmo_data: default(),
         }
     }
-}
-
-/// Debugging data for visualizing an `ImageFontSpriteText` in a scene, enabled
-/// by the `gizmos` feature.
-#[cfg(feature = "gizmos")]
-#[derive(Debug, Clone, Default, Component)]
-pub struct ImageFontGizmoData {
-    /// The width of the gizmo, representing the rendered font's bounding box
-    /// or visualized area in the scene.
-    width: f32,
-
-    /// The height of the gizmo, representing the rendered font's bounding box
-    /// or visualized area in the scene.
-    height: f32,
 }
 
 /// System that renders each [`ImageFontText`] as child [`Sprite`] entities,
@@ -175,12 +172,7 @@ pub fn set_up_sprites(
         ),
         Or<(Changed<ImageFontText>, Changed<ImageFontSpriteText>)>,
     >,
-    #[cfg(not(feature = "gizmos"))] mut child_query: Query<(&mut Sprite, &mut Transform)>,
-    #[cfg(feature = "gizmos")] mut child_query: Query<(
-        &mut Sprite,
-        &mut Transform,
-        &mut ImageFontGizmoData,
-    )>,
+    mut child_query: Query<(&mut Sprite, &mut Transform)>,
     image_fonts: Res<Assets<ImageFont>>,
     texture_atlas_layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
@@ -305,12 +297,7 @@ fn maybe_insert_new_image_font_text_data(
 /// # Returns
 /// The x-position to the right of the last processed sprite.
 fn update_existing_sprites(
-    #[cfg(not(feature = "gizmos"))] child_query: &mut Query<(&mut Sprite, &mut Transform)>,
-    #[cfg(feature = "gizmos")] child_query: &mut Query<(
-        &mut Sprite,
-        &mut Transform,
-        &mut ImageFontGizmoData,
-    )>,
+    child_query: &mut Query<(&mut Sprite, &mut Transform)>,
     sprite_context: &mut SpriteContext,
     render_context: &RenderContext,
 ) -> f32 {
@@ -327,17 +314,7 @@ fn update_existing_sprites(
         .copied()
         .zip(render_context.text().filtered_chars())
     {
-        #[cfg(not(feature = "gizmos"))]
         let (mut sprite, mut transform) = match child_query.get_mut(sprite_entity) {
-            Ok(result) => result,
-            Err(error) => {
-                error!("An ImageFontSpriteText unexpectedly failed: {error}. This will likely cause rendering bugs.");
-                continue;
-            }
-        };
-
-        #[cfg(feature = "gizmos")]
-        let (mut sprite, mut transform, mut gizmo_data) = match child_query.get_mut(sprite_entity) {
             Ok(result) => result,
             Err(error) => {
                 error!("An ImageFontSpriteText unexpectedly failed: {error}. This will likely cause rendering bugs.");
@@ -359,11 +336,11 @@ fn update_existing_sprites(
         *transform = render_context.transform(&mut x_pos, character);
 
         #[cfg(feature = "gizmos")]
-        {
-            let (width, height) = render_context.character_dimensions(character);
-            gizmo_data.width = width;
-            gizmo_data.height = height;
-        }
+        gizmos::record_character_dimensions(
+            render_context,
+            character,
+            &mut image_font_text_data.gizmo_data,
+        );
     }
 
     x_pos
@@ -476,11 +453,11 @@ fn add_missing_sprites(
             image_font_text_data.sprites.push(child.id());
 
             #[cfg(feature = "gizmos")]
-            {
-                let (width, height) = render_context.character_dimensions(character);
-                let mut child = child;
-                child.insert(ImageFontGizmoData { width, height });
-            }
+            gizmos::record_character_dimensions(
+                render_context,
+                character,
+                &mut image_font_text_data.gizmo_data,
+            );
         }
     });
 }
@@ -494,54 +471,4 @@ struct SpriteContext<'data> {
     entity: Entity,
     /// The mutable text sprite data component for the entity.
     image_font_text_data: &'data mut ImageFontTextData,
-}
-
-/// Renders gizmos for debugging `ImageFontText` and its associated glyphs in
-/// the scene.
-///
-/// This function draws 2D rectangles and crosshairs to visualize the bounding
-/// boxes and positions of rendered glyphs, aiding in debugging and alignment.
-///
-/// ### Gizmo Details
-/// - Each child glyph is visualized as a purple rectangle using its dimensions
-///   and position.
-/// - The `ImageFontText` position is marked with a red cross for easier
-///   identification.
-///
-/// ### Notes
-/// This function is enabled only when the `gizmos` feature is active and
-/// leverages the Bevy gizmo system for runtime visualization.
-#[cfg(all(
-    feature = "gizmos",
-    not(feature = "DO_NOT_USE_internal_tests_disable_gizmos")
-))]
-pub fn render_sprite_gizmos(
-    mut gizmos: Gizmos,
-    query: Query<(&GlobalTransform, &Children), With<ImageFontText>>,
-    child_query: Query<(&GlobalTransform, &ImageFontGizmoData), Without<ImageFontText>>,
-) {
-    use bevy::color::palettes::css;
-
-    for (global_transform, children) in &query {
-        for &child in children {
-            if let Ok((child_global_transform, image_font_gizmo_data)) = child_query.get(child) {
-                gizmos.rect_2d(
-                    Isometry2d::from_translation(child_global_transform.translation().truncate()),
-                    Vec2::new(image_font_gizmo_data.width, image_font_gizmo_data.height),
-                    css::PURPLE,
-                );
-                gizmos.cross_2d(
-                    Isometry2d::from_translation(child_global_transform.translation().truncate()),
-                    5.,
-                    css::GREEN,
-                );
-            }
-        }
-
-        gizmos.cross_2d(
-            Isometry2d::from_translation(global_transform.translation().truncate()),
-            10.,
-            css::RED,
-        );
-    }
 }

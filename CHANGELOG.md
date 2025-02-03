@@ -15,12 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for fonts that span multiple texture pages.
 - `BmFontLoader` for loading bitmap font file formats (`txt.fnt`, `xml.fnt`, `bin.fnt`).
 - Example (`bmf.rs`) for rendering bitmap fonts (`txt.fnt`, `xml.fnt`, `bin.fnt`). Uses multilingual pangrams to test font rendering in various scripts.
+- Introduced `AtlasSpritesGizmoConfigGroup` for global configuration of debug rendering options.
+- Gizmos can now be toggled per-entity via `ShowAtlasSpritesGizmos`.
 
 ### Changed
 
 - Updated text rendering calculations to account for `letter_spacing`.
 - No longer repeatedly prints error for missing font assets.
 - `ImageFont` now supports multiple textures instead of a single one. (Currently only supported by `.fnt` definitions)
+- Gizmos are now governed by settings in `AtlasSpritesGizmoConfigGroup`.
 
 ### Removed
 
