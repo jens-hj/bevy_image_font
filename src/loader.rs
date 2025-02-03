@@ -24,6 +24,7 @@ pub use bmf::*;
 
 /// Human-readable way to specify where the characters in an image font are.
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ImageFontLayout {
     /// Interprets the string as a "grid" and slices up the input image
     /// accordingly. Leading and trailing newlines are stripped, but spaces
@@ -390,6 +391,7 @@ impl From<LoadDirectError> for ImageFontLoadError {
 
 /// Configuration settings for the `ImageFontLoader`.
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[non_exhaustive]
 pub struct ImageFontLoaderSettings {
     /// The [`ImageSampler`] to use during font image rendering. Determines
     /// how the font's texture is sampled when scaling or transforming it.

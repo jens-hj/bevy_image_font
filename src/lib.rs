@@ -257,6 +257,7 @@ pub struct ImageFontCharacter {
 /// Text rendered using an [`ImageFont`].
 #[derive(Debug, Clone, Reflect, Default, Component, Setters)]
 #[setters(into)]
+#[non_exhaustive]
 pub struct ImageFontText {
     /// The string of text to be rendered. Each character in the string is
     /// mapped to a corresponding glyph in the associated [`ImageFont`].

@@ -39,7 +39,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
     commands.spawn(Camera2d);
 
     commands.spawn((
-        ImageFontPreRenderedText,
+        ImageFontPreRenderedText::default(),
         ImageFontText::default()
             .text(TEXT)
             .font(assets.example.clone())
@@ -51,7 +51,7 @@ fn spawn_text(mut commands: Commands, assets: Res<DemoAssets>) {
         Transform::from_translation(Vec3::new(0.5, 0., 0.)),
     ));
     commands.spawn((
-        ImageFontPreRenderedText,
+        ImageFontPreRenderedText::default(),
         ImageFontText::default()
             .text(TEXT)
             .font(assets.example.clone()),

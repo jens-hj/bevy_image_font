@@ -65,6 +65,7 @@ impl Plugin for AtlasSpritesPlugin {
 #[derive(Debug, Clone, Reflect, Default, Component, Setters)]
 #[setters(into)]
 #[require(ImageFontText, Visibility)]
+#[non_exhaustive]
 pub struct ImageFontSpriteText {
     /// The alignment point of the text relative to its position. For example,
     /// `Anchor::TopLeft` aligns the text's top-left corner to its position.

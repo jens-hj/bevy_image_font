@@ -64,6 +64,7 @@ impl Plugin for RenderedPlugin {
 /// on its `Sprite` component.
 #[derive(Component, Debug, Default, Clone, Reflect)]
 #[require(ImageFontText, Sprite)]
+#[non_exhaustive]
 pub struct ImageFontPreRenderedText;
 
 /// A component for displaying UI text that has been pre-rendered using an image
@@ -75,6 +76,7 @@ pub struct ImageFontPreRenderedText;
 #[derive(Component, Debug, Default, Clone, Reflect)]
 #[cfg(feature = "ui")]
 #[require(ImageFontText, ImageNode)]
+#[non_exhaustive]
 pub struct ImageFontPreRenderedUiText;
 
 /// System that renders each [`ImageFontText`] into its [`Sprite`]. This system
