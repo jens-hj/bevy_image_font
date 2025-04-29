@@ -260,11 +260,12 @@ fn render_sprite_gizmos(
 /// - Otherwise, it falls back to the global configuration in
 ///   [`AtlasSpritesGizmoConfigGroup`].
 macro_rules! gizmo_config_value {
-    ($gizmos:expr, $sprite_gizmos:expr, $field:ident) => {
+    ($gizmos:expr, $sprite_gizmos:expr, $field:ident) => {{
+        let config = &$gizmos.config_ext;
         $sprite_gizmos
-            .and_then(|sprite_gizmos| sprite_gizmos.$field)
-            .unwrap_or($gizmos.config_ext.$field)
-    };
+            .and_then(|sprite_gizmos| sprite_gizmos.$field.clone())
+            .unwrap_or_else(|| config.$field.clone())
+    }};
 }
 
 /// X
@@ -276,34 +277,55 @@ fn render_gizmos(
     children: &Children,
     data: &ImageFontTextData,
 ) {
+    // Extract config values once upfront
+    let config = &gizmos.config_ext;
+    let render_character_box = sprite_gizmos
+        .and_then(|sg| sg.render_character_box)
+        .unwrap_or(config.render_character_box);
+    let character_box_color = sprite_gizmos
+        .and_then(|sg| sg.character_box_color)
+        .unwrap_or(config.character_box_color);
+    let render_character_anchor_point = sprite_gizmos
+        .and_then(|sg| sg.render_character_anchor_point)
+        .unwrap_or(config.render_character_anchor_point);
+    let character_anchor_point_color = sprite_gizmos
+        .and_then(|sg| sg.character_anchor_point_color)
+        .unwrap_or(config.character_anchor_point_color);
+    let render_text_anchor_point = sprite_gizmos
+        .and_then(|sg| sg.render_text_anchor_point)
+        .unwrap_or(config.render_text_anchor_point);
+    let text_anchor_point_color = sprite_gizmos
+        .and_then(|sg| sg.text_anchor_point_color)
+        .unwrap_or(config.text_anchor_point_color);
+
     for &child in children {
         if let Ok(child_global_transform) = child_query.get(child) {
             let width = data.gizmo_data.width;
             let height = data.gizmo_data.height;
 
-            if gizmo_config_value!(gizmos, sprite_gizmos, render_character_box) {
+            if render_character_box {
                 gizmos.rect_2d(
                     Isometry2d::from_translation(child_global_transform.translation().truncate()),
                     Vec2::new(width, height),
-                    gizmo_config_value!(gizmos, sprite_gizmos, character_box_color),
+                    character_box_color,
                 );
             }
 
-            if gizmo_config_value!(gizmos, sprite_gizmos, render_character_anchor_point) {
+            if render_character_anchor_point {
                 gizmos.cross_2d(
                     Isometry2d::from_translation(child_global_transform.translation().truncate()),
                     5.,
-                    gizmo_config_value!(gizmos, sprite_gizmos, character_anchor_point_color),
+                    character_anchor_point_color,
                 );
             }
         }
     }
 
-    if gizmo_config_value!(gizmos, sprite_gizmos, render_text_anchor_point) {
+    if render_text_anchor_point {
         gizmos.cross_2d(
             Isometry2d::from_translation(global_transform.translation().truncate()),
             10.,
-            gizmo_config_value!(gizmos, sprite_gizmos, text_anchor_point_color),
+            text_anchor_point_color,
         );
     }
 }

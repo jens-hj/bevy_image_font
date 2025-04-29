@@ -28,12 +28,13 @@ rendered = ["dep:image"]
 ui = ["rendered", "bevy/bevy_ui"]
 
 [dependencies]
-bevy = { version = "0.15", default-features = false, features = [
+bevy = { version = "0.16", default-features = false, features = [
     "bevy_asset",
     "bevy_render",
     "bevy_sprite",
 ] }
-bevy_image = "0.15"
+tracing = "0.1.41"
+bevy_image = "0.16"
 bmfont_rs = { version = "0.2.1", features = ["xml"] }
 camino = { version = "1.1.9", features = ["serde1"] }
 derive_setters = "0.1.6"
@@ -49,7 +50,7 @@ features = ["png"]
 optional = true
 
 [dev-dependencies]
-bevy = { version = "0.15", default-features = false, features = [
+bevy = { version = "0.16", default-features = false, features = [
     "bevy_asset",
     "bevy_render",
     "bevy_sprite",
@@ -59,7 +60,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "png",
     "x11",
 ] }
-bevy_asset_loader = { version = "0.22.0", features = ["2d"] }
+bevy_asset_loader = { version = "0.23.0-rc.3", features = ["2d"] }
 crossbeam-channel = "0.5.14"
 float_eq = "1.0.1"
 itertools = "0.14"

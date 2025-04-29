@@ -165,7 +165,9 @@ fn with_image_font_text(
     with_func: impl FnOnce(Ref<'_, ImageFontText>),
 ) {
     let query = system_state.get(app.world());
-    let image_font_text = query.single();
+    let image_font_text = query
+        .single()
+        .expect("Entity with ImageFontText should exist");
     with_func(image_font_text);
 }
 

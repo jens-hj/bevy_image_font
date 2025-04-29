@@ -24,9 +24,12 @@ use image::{
     GenericImage as _, GenericImageView as _, ImageBuffer, ImageError, Rgba,
 };
 use thiserror::Error;
+use tracing::{debug, error};
 
 use crate::render_context::{RenderConfig, RenderContext};
-use crate::{sync_texts_with_font_changes, ImageFont, ImageFontSet, ImageFontText, ScalingMode};
+use crate::{
+    sync_texts_with_font_changes, FontScalingMode, ImageFont, ImageFontSet, ImageFontText,
+};
 
 /// Internal plugin for conveniently organizing the code related to this
 /// module's feature.
@@ -210,7 +213,7 @@ fn render_text_to_image(
         offset_characters: false,
         apply_scaling: false,
         letter_spacing: 0.0,
-        scaling_mode: ScalingMode::Truncated,
+        scaling_mode: FontScalingMode::Truncated,
         color: Color::WHITE, // Currently unused for rendering to an image
     };
 
@@ -240,7 +243,12 @@ fn render_text_to_image(
     let font_textures: Vec<ImageBuffer<Rgba<u8>, _>> = textures
         .iter()
         .map(|texture| {
-            ImageBuffer::from_raw(texture.width(), texture.height(), texture.data.as_slice())
+            let flat_data: Vec<u8> = texture
+                .data
+                .iter()
+                .flat_map(|v| v.iter().copied())
+                .collect();
+            ImageBuffer::from_raw(texture.width(), texture.height(), flat_data)
         })
         .collect::<Option<_>>()
         .ok_or(ImageFontRenderError::UnknownError)?;

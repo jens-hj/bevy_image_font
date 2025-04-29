@@ -21,6 +21,7 @@ use bevy::winit::WinitPlugin;
 use bevy::{
     app::{AppExit, ScheduleRunnerPlugin},
     core_pipeline::tonemapping::Tonemapping,
+    ecs::system::IntoSystemConfig,
     prelude::*,
     render::{
         camera::RenderTarget,
@@ -71,7 +72,7 @@ struct RenderWorldSender(Sender<Vec<u8>>);
 pub(crate) fn prepare_app<M>(
     category: impl Into<String>,
     image_name: impl Into<String>,
-    setup_system: impl IntoSystemConfigs<M>,
+    setup_system: impl IntoSystemConfig<M>,
 ) {
     let mut app = App::new();
 

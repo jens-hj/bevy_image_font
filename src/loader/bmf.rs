@@ -10,18 +10,18 @@
 //! Code for parsing an [`ImageFont`] off of an on-disk representation in `fnt`
 //! format.
 
-use bevy::log::warn;
 use bevy::math::Vec2;
+use bevy::platform::collections::HashMap;
 use bevy::{
     asset::{io::Reader, AssetLoader, LoadContext},
     image::Image,
     math::{URect, UVec2},
-    sprite::TextureAtlasLayout,
-    utils::HashMap,
 };
+use bevy_image::TextureAtlasLayout;
 use camino::Utf8Path;
 use strum::{AsRefStr, EnumIter, IntoEnumIterator as _, VariantNames};
 use thiserror::Error;
+use tracing::warn;
 
 use crate::ImageFontCharacter;
 use crate::{
@@ -247,7 +247,7 @@ fn process_bmf_characters(
         } else {
             warn!(
                 "Skipping invalid character id {}. Full char definition: {char:?} ",
-                char.id
+                char.id,
             );
         }
     }

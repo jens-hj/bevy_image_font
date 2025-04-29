@@ -5,8 +5,6 @@
 
 use std::sync::LazyLock;
 
-use bevy::log::LogPlugin;
-use bevy::utils::hashbrown::HashMap;
 use bevy_image::{CompressedImageFormats, ImageLoader};
 use camino::Utf8Path;
 
@@ -51,7 +49,7 @@ pub(crate) fn wait_until_loaded<T: Asset>(app: &mut App, handle: &Handle<T>) {
 fn initialize_app_with_font(font_path: impl AsRef<Utf8Path>) -> (App, Handle<ImageFont>) {
     let mut app = App::new();
 
-    app.add_plugins((MinimalPlugins, AssetPlugin::default(), LogPlugin::default()));
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(ImageFontPlugin);
 
     app.register_asset_loader(ImageLoader::new(CompressedImageFormats::NONE))
